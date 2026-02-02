@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Bảo mật file cấu hình ứng dụng
+src/main/resources/application.properties

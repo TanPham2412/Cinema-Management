@@ -1,0 +1,39 @@
+{
+  "name": "cinema-management-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.0.4",
+    "react-router-dom": "^6.21.1",
+    "axios": "^1.6.5",
+    "sockjs-client": "^1.6.1",
+    "@stomp/stompjs": "^7.0.0",
+    "react-qr-code": "^2.0.12",
+    "date-fns": "^3.0.6",
+    "react-hot-toast": "^2.4.1",
+    "lucide-react": "^0.309.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "vite": "^6.0.1"
+  }
+}
