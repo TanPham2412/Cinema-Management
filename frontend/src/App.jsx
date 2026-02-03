@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="booking/:screeningId" element={<BookingPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="auth/google/callback" element={<OAuth2RedirectHandler />} />
           
           {/* Protected Routes */}
           <Route
