@@ -9,6 +9,8 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import MovieManagement from './pages/admin/MovieManagement'
+import GenreManagement from './pages/admin/GenreManagement'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
@@ -39,10 +41,26 @@ function App() {
           
           {/* Admin Routes */}
           <Route
-            path="admin/*"
+            path="admin"
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/movies"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <MovieManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/genres"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <GenreManagement />
               </ProtectedRoute>
             }
           />
