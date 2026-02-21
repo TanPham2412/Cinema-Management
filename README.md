@@ -1,5 +1,9 @@
 # Cinema Chain Management System - Hệ thống Quản lý Chuỗi Rạp Chiếu Phim
 
+> ⚡ **Quick Start**: Xem file [QUICKSTART.md](QUICKSTART.md) để setup trong 5 phút!  
+> 📚 **Setup chi tiết**: Xem file [SETUP_GUIDE.md](SETUP_GUIDE.md)  
+> 📝 **Changelog**: Xem file [CHANGELOG.md](CHANGELOG.md) để biết các cập nhật mới nhất
+
 ## 📋 Mô tả dự án
 
 Hệ thống quản lý chuỗi rạp chiếu phim toàn diện với các tính năng:
