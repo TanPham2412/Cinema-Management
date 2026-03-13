@@ -1,9 +1,5 @@
 # Cinema Chain Management System - Hệ thống Quản lý Chuỗi Rạp Chiếu Phim
 
-> ⚡ **Quick Start**: Xem file [QUICKSTART.md](QUICKSTART.md) để setup trong 5 phút!  
-> 📚 **Setup chi tiết**: Xem file [SETUP_GUIDE.md](SETUP_GUIDE.md)  
-> 📝 **Changelog**: Xem file [CHANGELOG.md](CHANGELOG.md) để biết các cập nhật mới nhất
-
 ## 📋 Mô tả dự án
 
 Hệ thống quản lý chuỗi rạp chiếu phim toàn diện với các tính năng:
@@ -72,7 +68,59 @@ cinema-management/
 
 ## 🚀 Hướng dẫn cài đặt
 
-### Yêu cầu hệ thống
+### ⭐ Cách 1: Chạy bằng Docker (Khuyến nghị - không cần cài Java/Node)
+
+**Yêu cầu duy nhất**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+```bash
+# 1. Clone project
+git clone <repository-url>
+cd cinema-management
+
+# 2. Tạo file cấu hình
+cp .env.example .env
+```
+
+Mở file `.env` và điền thông tin (bắt buộc nếu dùng Google Login):
+```env
+MYSQL_ROOT_PASSWORD=cinema123
+JWT_SECRET=2e5f4c9a1b2d4e6f8a0c1e4f6a8c0e2f4a6c8e0f2a2c6e8f0a2c4e6f8a0c2e4f
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+```
+
+```bash
+# 3. Build và khởi động toàn bộ hệ thống
+docker compose up -d --build
+```
+
+⏳ Lần đầu build mất khoảng 5-10 phút. Sau khi xong:
+
+- **Web**: http://localhost:3000
+- **API**: http://localhost:8081/api
+
+#### Tài khoản mặc định (tự động tạo khi khởi động)
+| Email | Password | Role |
+|-------|----------|------|
+| admin@cinema.com | Admin@123 | Admin |
+| staff@cinema.com | Staff@123 | Staff |
+
+#### Lệnh Docker thường dùng
+
+```bash
+docker compose up -d          # Khởi động (không build lại)
+docker compose down           # Tắt tất cả
+docker compose logs backend   # Xem log backend
+docker compose logs -f        # Xem log realtime tất cả services
+docker compose ps             # Kiểm tra trạng thái containers
+docker compose down -v        # Tắt và xóa toàn bộ dữ liệu (reset DB)
+```
+
+---
+
+### Cách 2: Chạy thủ công (cần cài Java, Node, MySQL, Redis)
+
+**Yêu cầu hệ thống:**
 - Java JDK 21
 - Node.js 18+
 - MySQL 8.0
