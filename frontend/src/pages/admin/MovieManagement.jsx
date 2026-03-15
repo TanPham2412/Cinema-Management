@@ -157,8 +157,8 @@ const MovieManagement = () => {
       ageRating: movie.ageRating || '',
       status: movie.status
     })
-    setPosterPreview(movie.posterUrl ? `http://localhost:8081${movie.posterUrl}` : null)
-    setBannerPreview(movie.bannerUrl ? `http://localhost:8081${movie.bannerUrl}` : null)
+    setPosterPreview(movie.posterUrl ? `/api${movie.posterUrl}` : null)
+    setBannerPreview(movie.bannerUrl ? `/api${movie.bannerUrl}` : null)
     setShowModal(true)
   }
 
@@ -291,7 +291,7 @@ const MovieManagement = () => {
                         <div className="w-12 h-16 bg-cinema-gray rounded overflow-hidden">
                           {movie.posterUrl ? (
                             <img 
-                              src={`http://localhost:8081${movie.posterUrl}`} 
+                              src={`/api${movie.posterUrl}`} 
                               alt={movie.title}
                               className="w-full h-full object-cover"
                             />

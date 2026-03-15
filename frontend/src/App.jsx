@@ -11,7 +11,13 @@ import ProfilePage from './pages/ProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import MovieManagement from './pages/admin/MovieManagement'
 import GenreManagement from './pages/admin/GenreManagement'
+import CinemaManagement from './pages/admin/CinemaManagement'
+import ScreeningManagement from './pages/admin/ScreeningManagement'
+import UserManagement from './pages/admin/UserManagement'
+import BookingManagement from './pages/admin/BookingManagement'
+import RevenueManagement from './pages/admin/RevenueManagement'
 import StaffDashboard from './pages/staff/StaffDashboard'
+import ScreeningSelectionPage from './pages/ScreeningSelectionPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
 
@@ -24,6 +30,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="movies" element={<MoviesPage />} />
           <Route path="movies/:id" element={<MovieDetailPage />} />
+          <Route path="movies/:id/screenings" element={<ScreeningSelectionPage />} />
           <Route path="booking/:screeningId" element={<BookingPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
@@ -61,6 +68,46 @@ function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <GenreManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/cinemas"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <CinemaManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/screenings"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <ScreeningManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/users"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/bookings"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <BookingManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/revenue"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <RevenueManagement />
               </ProtectedRoute>
             }
           />

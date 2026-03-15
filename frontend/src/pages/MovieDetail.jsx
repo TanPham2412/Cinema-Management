@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Clock, Calendar, Globe, Star, 
-  Film, Users, Award, Play 
+  Film, Users, Award, Play
 } from 'lucide-react';
 import movieService from '../services/movieService';
 import MovieReviews from '../components/MovieReviews';
+import ScreeningModal from '../components/ScreeningModal';
 
 const MovieDetail = () => {
   const { id } = useParams();
@@ -13,6 +14,7 @@ const MovieDetail = () => {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showBookModal, setShowBookModal] = useState(false);
 
   useEffect(() => {
     fetchMovieDetail();
@@ -86,12 +88,12 @@ const MovieDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cinema-darker via-cinema-dark to-cinema-darker">
+    <div className="min-h-screen bg-gradient-to-b from-cinema-darker via-cinema-dark to-cinema-darker pb-28">
       {/* Banner */}
       {movie.bannerUrl && (
         <div className="relative h-96 overflow-hidden">
           <img 
-            src={`http://localhost:8081${movie.bannerUrl}`}
+            src={`/api${movie.bannerUrl}`}
             alt={movie.title}
             className="w-full h-full object-cover"
           />
@@ -115,7 +117,7 @@ const MovieDetail = () => {
             <div className="bg-black/50 rounded-lg overflow-hidden shadow-2xl sticky top-6">
               {movie.posterUrl ? (
                 <img 
-                  src={`http://localhost:8081${movie.posterUrl}`}
+                  src={`/api${movie.posterUrl}`}
                   alt={movie.title}
                   className="w-full object-cover"
                 />
@@ -217,6 +219,15 @@ const MovieDetail = () => {
               </div>
             </div>
 
+            {movie.status === 'COMING_SOON' && (
+              <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-5 text-center">
+                <p className="text-amber-400 font-semibold text-lg">🎬 Phim sắp ra mắt</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Khởi chiếu: {new Date(movie.releaseDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </p>
+              </div>
+            )}
+
             {/* Trailer */}
             {movie.trailerUrl && (
               <div className="bg-black/50 rounded-lg p-6">
@@ -242,6 +253,33 @@ const MovieDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Sticky Mua vé Button */}
+      {movie.status === 'NOW_SHOWING' && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+          <div className="bg-gradient-to-t from-cinema-darker via-cinema-darker/95 to-transparent pt-8 pb-5 px-4">
+            <button
+              onClick={() => setShowBookModal(true)}
+              className="w-full max-w-2xl mx-auto flex items-center justify-center py-4 bg-cinema-red hover:bg-red-700 active:scale-95 text-white text-xl font-bold rounded-xl transition-all shadow-2xl pointer-events-auto"
+            >
+              Mua vé
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Screening Modal */}
+      {showBookModal && (
+        <ScreeningModal
+          movieId={id}
+          movieTitle={movie.title}
+          movieDuration={movie.duration}
+          moviePosterUrl={movie.posterUrl}
+          movieGenres={movie.genres?.map(g => g.name || g).join(', ')}
+          movieRating={movie.ageRating}
+          onClose={() => setShowBookModal(false)}
+        />
+      )}
     </div>
   );
 };
