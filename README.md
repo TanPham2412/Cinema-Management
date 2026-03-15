@@ -68,7 +68,7 @@ cinema-management/
 
 ## 🚀 Hướng dẫn cài đặt
 
-### ⭐ Cách 1: Chạy bằng Docker (Khuyến nghị - không cần cài Java/Node)
+### ⭐ Cách 1: Chạy toàn bộ bằng Docker (Khuyến nghị)
 
 **Yêu cầu duy nhất**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
@@ -108,7 +108,8 @@ docker compose up -d --build
 #### Lệnh Docker thường dùng
 
 ```bash
-docker compose up -d          # Khởi động (không build lại)
+docker compose up -d --build  # Lần đầu hoặc sau khi sửa code
+docker compose up -d          # Các lần sau (không build lại)
 docker compose down           # Tắt tất cả
 docker compose logs backend   # Xem log backend
 docker compose logs -f        # Xem log realtime tất cả services
@@ -118,7 +119,35 @@ docker compose down -v        # Tắt và xóa toàn bộ dữ liệu (reset DB)
 
 ---
 
-### Cách 2: Chạy thủ công (cần cài Java, Node, MySQL, Redis)
+### Cách 2: Chạy dev local (code nhanh, hot-reload)
+
+Dùng Docker chỉ cho database/redis, chạy backend và frontend trực tiếp trên máy.
+
+**Yêu cầu**: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Java JDK 21, Node.js 18+
+
+```bash
+# Bước 1: Khởi động MySQL + Redis bằng Docker
+docker compose up -d mysql redis
+
+# Bước 2: Chạy Backend (terminal 1)
+cd cinema-management
+.\mvnw spring-boot:run        # Windows
+./mvnw spring-boot:run        # Linux/Mac
+
+# Bước 3: Chạy Frontend (terminal 2)
+cd frontend
+npm install
+npm run dev
+```
+
+- **Web**: http://localhost:5173
+- **API**: http://localhost:8081/api
+
+> **Kết nối MySQL Workbench**: host `127.0.0.1`, port `3307`, user `root`, password `cinema123`
+
+---
+
+### Cách 3: Chạy thủ công (cần cài đầy đủ MySQL, Redis riêng)
 
 **Yêu cầu hệ thống:**
 - Java JDK 21

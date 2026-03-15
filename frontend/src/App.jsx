@@ -18,6 +18,8 @@ import BookingManagement from './pages/admin/BookingManagement'
 import RevenueManagement from './pages/admin/RevenueManagement'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import ScreeningSelectionPage from './pages/ScreeningSelectionPage'
+import CinemasPage from './pages/CinemasPage'
+import CinemaDetailPage from './pages/CinemaDetailPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
 
@@ -31,6 +33,8 @@ function App() {
           <Route path="movies" element={<MoviesPage />} />
           <Route path="movies/:id" element={<MovieDetailPage />} />
           <Route path="movies/:id/screenings" element={<ScreeningSelectionPage />} />
+          <Route path="cinemas" element={<CinemasPage />} />
+          <Route path="cinemas/:id" element={<CinemaDetailPage />} />
           <Route path="booking/:screeningId" element={<BookingPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />

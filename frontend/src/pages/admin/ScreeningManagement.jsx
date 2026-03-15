@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Calendar, Clock, Monitor, Film, Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
-import api from '../../services/api'
+import screeningService from '../../services/screeningService'
 import movieService from '../../services/movieService'
 import cinemaService from '../../services/cinemaService'
 
@@ -21,6 +21,7 @@ const ScreeningManagement = () => {
   const [screenings, setScreenings] = useState([])
   const [movies, setMovies] = useState([])
   const [cinemas, setCinemas] = useState([])
+  const [screens, setScreens] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -34,17 +35,28 @@ const ScreeningManagement = () => {
     fetchAll()
   }, [])
 
+  // Load screens when cinema changes
+  useEffect(() => {
+    if (form.cinemaId) {
+      cinemaService.getScreensByCinema(form.cinemaId)
+        .then(setScreens)
+        .catch(() => setScreens([]))
+    } else {
+      setScreens([])
+    }
+  }, [form.cinemaId])
+
   const fetchAll = async () => {
     setLoading(true)
     const [moviesRes, cinemasRes, screeningsRes] = await Promise.allSettled([
       movieService.searchMovies({ size: 100 }),
-      cinemaService.getCinemas(),
-      api.get('/screenings'),
+      cinemaService.getAdminCinemas(),
+      screeningService.getAllScreenings(),
     ])
     if (moviesRes.status === 'fulfilled') setMovies(moviesRes.value?.content || [])
     if (cinemasRes.status === 'fulfilled') setCinemas(cinemasRes.value || [])
     if (screeningsRes.status === 'fulfilled') {
-      setScreenings(screeningsRes.value?.data || [])
+      setScreenings(screeningsRes.value || [])
     } else {
       setError('API suất chiếu chưa sẵn sàng — hiển thị giao diện demo')
       setScreenings([
@@ -60,12 +72,18 @@ const ScreeningManagement = () => {
     if (!form.movieId || !form.startTime) return
     setSaving(true)
     try {
-      await api.post('/screenings', form)
+      const payload = {
+        movieId: form.movieId,
+        screenId: form.screenId,
+        startTime: form.startTime,
+        basePrice: form.basePrice,
+        priceCategory: form.priceCategory,
+      }
+      await screeningService.createScreening(payload)
       await fetchAll()
       setShowModal(false); setForm(EMPTY_FORM)
-    } catch {
-      alert('API chưa sẵn sàng — thao tác mô phỏng thành công')
-      setShowModal(false); setForm(EMPTY_FORM)
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Thêm suất chiếu thất bại')
     } finally {
       setSaving(false)
     }
@@ -74,9 +92,11 @@ const ScreeningManagement = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Hủy suất chiếu này?')) return
     try {
-      await api.delete(`/screenings/${id}`)
-    } catch {}
-    setScreenings(prev => prev.filter(s => s.id !== id))
+      await screeningService.deleteScreening(id)
+      setScreenings(prev => prev.filter(s => s.id !== id))
+    } catch {
+      alert('Hủy suất chiếu thất bại')
+    }
   }
 
   const filtered = screenings.filter(s => s.startTime?.startsWith(filterDate))
@@ -225,10 +245,19 @@ const ScreeningManagement = () => {
               </div>
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Rạp *</label>
-                <select value={form.cinemaId} onChange={e => setForm(p => ({ ...p, cinemaId: e.target.value }))}
+                <select value={form.cinemaId} onChange={e => setForm(p => ({ ...p, cinemaId: e.target.value, screenId: '' }))}
                   className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm">
                   <option value="">-- Chọn rạp --</option>
                   {cinemas.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Phòng chiếu *</label>
+                <select value={form.screenId} onChange={e => setForm(p => ({ ...p, screenId: e.target.value }))}
+                  disabled={!form.cinemaId}
+                  className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm disabled:opacity-50">
+                  <option value="">-- Chọn phòng --</option>
+                  {screens.map(s => <option key={s.id} value={s.id}>{s.name} ({s.totalSeats} ghế)</option>)}
                 </select>
               </div>
               <div>

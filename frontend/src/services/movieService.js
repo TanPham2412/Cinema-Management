@@ -39,7 +39,7 @@ const getTopRated = async (page = 0, size = 10) => {
 }
 
 const getScreenings = async (movieId) => {
-  const response = await api.get(`/movies/${movieId}/screenings`)
+  const response = await api.get(`/screenings/movie/${movieId}`)
   return response.data
 }
 
