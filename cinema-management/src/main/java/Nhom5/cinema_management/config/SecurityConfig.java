@@ -59,6 +59,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
                 // Public POST for login/register
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
+                // VNPay endpoints - return, callback & IPN must be public
+                .requestMatchers("/payment/vnpay/return", "/payment/vnpay/callback", "/payment/vnpay/ipn").permitAll()
                 // Reviews - require authentication (any user can review)
                 .requestMatchers("/reviews/**").authenticated()
                 // WebSocket and uploads

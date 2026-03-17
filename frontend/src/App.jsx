@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage'
 import MoviesPage from './pages/MoviesPage'
 import MovieDetailPage from './pages/MovieDetailPage'
 import BookingPage from './pages/BookingPage'
+import BookingConfirmPage from './pages/BookingConfirmPage'
+import VNPayReturnPage from './pages/VNPayReturnPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
@@ -36,6 +38,8 @@ function App() {
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="cinemas/:id" element={<CinemaDetailPage />} />
           <Route path="booking/:screeningId" element={<BookingPage />} />
+          <Route path="booking/confirm" element={<BookingConfirmPage />} />
+          <Route path="payment/vnpay/result" element={<VNPayReturnPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="auth/google/callback" element={<OAuth2RedirectHandler />} />
