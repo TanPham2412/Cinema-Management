@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { Tag, Clock, Building2, Calendar, Film } from 'lucide-react'
+import { Tag, Clock, Building2, Calendar, Film, X, ChevronLeft } from 'lucide-react'
 import bookingService from '../services/bookingService'
+
+const PAYMENT_METHODS = [
+  { value: 'VNPAY',       label: 'VNPay',        icon: '💳', desc: 'Thanh toán qua VNPay' },
+  { value: 'MOMO',        label: 'MoMo',          icon: '🟣', desc: 'Ví điện tử MoMo' },
+  { value: 'CREDIT_CARD', label: 'Thẻ tín dụng',  icon: '💰', desc: 'Visa / Mastercard' },
+  { value: 'CASH',        label: 'Tiền mặt',      icon: '🏧', desc: 'Thanh toán tại quầy' },
+]
 
 const SEAT_TYPES = {
   REGULAR: { label: 'Ghế thường', price: 0 },
@@ -73,7 +80,9 @@ const BookingPage = () => {
   const [loading, setLoading] = useState(true)
   const [selectedSeats, setSelectedSeats] = useState([])
   const [booking, setBooking] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(600) // 10-minute countdown
+  const [timeLeft, setTimeLeft] = useState(600)
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('VNPAY')
 
   // Countdown timer
   useEffect(() => {
@@ -168,13 +177,33 @@ const BookingPage = () => {
     if (!selectedSeats.length) return
     setBooking(true)
     try {
-      await bookingService.createBooking({
+      const result = await bookingService.createBooking({
         screeningId: parseInt(screeningId),
         seatIds: selectedSeats.map((s) => s.id),
         combos: [],
-        paymentMethod: 'VNPAY',
+        paymentMethod,
       })
-      navigate('/')
+
+      setShowCheckout(false)
+
+      if (paymentMethod === 'VNPAY') {
+        // Get VNPay payment URL and redirect browser to VNPay
+        const { paymentUrl } = await bookingService.createVNPayUrl(result.bookingCode)
+        window.location.href = paymentUrl
+      } else {
+        navigate('/booking/confirm', {
+          state: {
+            booking: {
+              ...result,
+              movieTitle: screeningInfo?.movieTitle,
+              cinemaName: screeningInfo?.cinemaName,
+              screenName: screeningInfo?.screenName,
+              date: screeningInfo?.date,
+              time: screeningInfo?.time,
+            }
+          }
+        })
+      }
     } catch (e) {
       alert('Đặt vé thất bại: ' + (e.response?.data?.message || 'Vui lòng thử lại'))
     } finally {
@@ -366,11 +395,11 @@ const BookingPage = () => {
               />
 
               <button
-                onClick={handleBook}
+                onClick={() => setShowCheckout(true)}
                 disabled={!selectedSeats.length || booking}
                 className="mt-4 w-full py-2.5 bg-[#1a3a6c] hover:bg-[#15306b] disabled:bg-cinema-gray-light disabled:text-gray-600 disabled:cursor-not-allowed text-white font-black rounded tracking-[0.15em] text-sm transition-colors"
               >
-                {booking ? 'Đang xử lý...' : 'TIẾP TỤC'}
+                TIẾP TỤC
               </button>
             </div>
           </div>
@@ -404,6 +433,119 @@ const BookingPage = () => {
           </div>
         </div>
       </div>
+      {/* ─── Checkout overlay ─── */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-0 sm:px-4">
+          <div className="w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowCheckout(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <ChevronLeft size={20} />
+                </button>
+                <h2 className="font-black text-gray-800 text-base">Xác nhận đặt vé</h2>
+              </div>
+              <button onClick={() => setShowCheckout(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              {/* Movie + screening summary */}
+              <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
+                <div className="flex gap-3 items-start">
+                  {screeningInfo?.posterUrl && (
+                    <img
+                      src={screeningInfo.posterUrl.startsWith('/api') ? screeningInfo.posterUrl : `/api${screeningInfo.posterUrl}`}
+                      alt={screeningInfo.movieTitle}
+                      className="w-16 rounded-lg object-cover aspect-[2/3] shrink-0"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <p className="font-black text-gray-800 text-base leading-tight">{screeningInfo?.movieTitle}</p>
+                    <p className="text-gray-400 text-xs mt-0.5">{screeningInfo?.format || '2D Phụ đề'}</p>
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-gray-500 flex gap-1"><Building2 size={12} className="mt-0.5 shrink-0" />{screeningInfo?.cinemaName} · {screeningInfo?.screenName}</p>
+                      <p className="text-xs text-gray-500 flex gap-1"><Calendar size={12} className="mt-0.5 shrink-0" />{screeningInfo?.date} &nbsp;·&nbsp; {screeningInfo?.time}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seat summary */}
+              <div className="px-5 py-4 border-b border-gray-100">
+                <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Ghế đã chọn</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSeats.map(s => (
+                    <div key={s.id} className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${
+                      s.seatType === 'VIP' ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
+                      : s.seatType === 'COUPLE' ? 'bg-pink-50 border-pink-300 text-pink-700'
+                      : 'bg-blue-50 border-blue-200 text-blue-700'
+                    }`}>
+                      {s.seatRow}{s.seatNumber}
+                      <span className="font-normal ml-1 opacity-70">
+                        {s.seatType === 'VIP' ? 'VIP' : s.seatType === 'COUPLE' ? 'Đôi' : 'Thường'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {/* Per-seat price breakdown */}
+                <div className="mt-3 space-y-1.5">
+                  {selectedSeats.map(s => (
+                    <div key={s.id} className="flex justify-between text-sm">
+                      <span className="text-gray-600">Ghế {s.seatRow}{s.seatNumber} ({s.seatType === 'VIP' ? 'VIP' : s.seatType === 'COUPLE' ? 'Đôi' : 'Thường'})</span>
+                      <span className="font-semibold text-gray-800">{seatPrice(s).toLocaleString('vi-VN')} đ</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment method */}
+              <div className="px-5 py-4 border-b border-gray-100">
+                <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Phương thức thanh toán</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {PAYMENT_METHODS.map(pm => (
+                    <button
+                      key={pm.value}
+                      onClick={() => setPaymentMethod(pm.value)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${
+                        paymentMethod === pm.value
+                          ? 'border-[#1a3a6c] bg-blue-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl shrink-0">{pm.icon}</span>
+                      <div>
+                        <p className={`text-sm font-bold leading-tight ${paymentMethod === pm.value ? 'text-[#1a3a6c]' : 'text-gray-700'}`}>{pm.label}</p>
+                        <p className="text-[10px] text-gray-400">{pm.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom: total + confirm button */}
+            <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0">
+              <div className="flex items-center justify-between mb-3.5">
+                <span className="text-gray-500 font-medium">Tổng thanh toán</span>
+                <span className="text-[#1a3a6c] font-black text-xl">{total.toLocaleString('vi-VN')} đ</span>
+              </div>
+              <button
+                onClick={handleBook}
+                disabled={booking}
+                className="w-full py-3.5 bg-cinema-red hover:bg-red-700 disabled:bg-gray-400 text-white font-black rounded-xl tracking-wide text-base transition-colors"
+              >
+                {booking ? 'Đang xử lý...' : '🎬 XÁC NHẬN ĐẶT VÉ'}
+              </button>
+              <p className="text-center text-xs text-gray-400 mt-2">
+                Bằng cách đặt vé, bạn đồng ý với điều khoản sử dụng của LLMCinema
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
