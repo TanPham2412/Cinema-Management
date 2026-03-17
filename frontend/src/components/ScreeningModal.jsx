@@ -310,4 +310,3 @@ const ScreeningModal = ({
 };
 
 export default ScreeningModal;
-

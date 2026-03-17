@@ -25,12 +25,18 @@ const getScreeningSeats = async (screeningId) => {
   return response.data
 }
 
+const createVNPayUrl = async (bookingCode) => {
+  const response = await api.get('/payment/vnpay/create', { params: { bookingCode } })
+  return response.data // { paymentUrl: "..." }
+}
+
 const bookingService = {
   createBooking,
   getUserBookings,
   getBookingByCode,
   cancelBooking,
   getScreeningSeats,
+  createVNPayUrl,
 }
 
 export default bookingService
