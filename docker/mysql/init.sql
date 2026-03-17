@@ -1,0 +1,6 @@
+-- Additional user creation is handled automatically by Docker MySQL via
+-- MYSQL_USER and MYSQL_PASSWORD environment variables in docker-compose.yml.
+-- If the user was not created automatically (existing volume), run manually:
+--   CREATE USER IF NOT EXISTS '<MYSQL_USER>'@'%' IDENTIFIED BY '<MYSQL_PASSWORD>';
+--   GRANT ALL PRIVILEGES ON cinema_management.* TO '<MYSQL_USER>'@'%';
+--   FLUSH PRIVILEGES;
