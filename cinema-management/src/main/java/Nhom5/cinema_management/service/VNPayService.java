@@ -161,7 +161,9 @@ public class VNPayService {
             User user = booking.getUser();
             int pointsUsed = booking.getPointsUsed() != null ? booking.getPointsUsed() : 0;
             int pointsEarned = booking.getPointsEarned() != null ? booking.getPointsEarned() : 0;
-            user.setLoyaltyPoints(user.getLoyaltyPoints() - pointsUsed + pointsEarned);
+            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            user.setLoyaltyPoints(newPoints);
+            user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);
         } else {
             // Payment failed
@@ -173,6 +175,14 @@ public class VNPayService {
         bookingRepository.save(booking);
         paymentRepository.save(payment);
         log.info("VNPay payment processed for booking {} - responseCode: {}", bookingCode, responseCode);
+    }
+
+    private User.MembershipTier calculateTier(int points) {
+        if (points >= 10000) return User.MembershipTier.DIAMOND;
+        if (points >= 3000)  return User.MembershipTier.PLATINUM;
+        if (points >= 1000)  return User.MembershipTier.GOLD;
+        if (points >= 300)   return User.MembershipTier.SILVER;
+        return User.MembershipTier.BRONZE;
     }
 
     /**

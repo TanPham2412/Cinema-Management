@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,10 +62,14 @@ public class BookingService {
         }
 
         // Check seats are not already booked in this screening
+        LocalDateTime now = LocalDateTime.now();
         List<Long> bookedSeatIds = screening.getBookings() == null ? List.of() :
                 screening.getBookings().stream()
                         .filter(b -> b.getStatus() != Booking.BookingStatus.CANCELLED
-                                  && b.getStatus() != Booking.BookingStatus.EXPIRED)
+                                  && b.getStatus() != Booking.BookingStatus.EXPIRED
+                                  && !(b.getStatus() == Booking.BookingStatus.PENDING
+                                       && b.getExpiryTime() != null
+                                       && b.getExpiryTime().isBefore(now)))
                         .flatMap(b -> b.getBookingSeats() == null ? java.util.stream.Stream.empty()
                                 : b.getBookingSeats().stream())
                         .map(bs -> bs.getSeat().getId())
@@ -144,7 +149,9 @@ public class BookingService {
         // For non-VNPay payments, update user loyalty points immediately
         // For VNPay, loyalty points are updated in VNPayService.confirmPayment()
         if (!isVNPay) {
-            user.setLoyaltyPoints(user.getLoyaltyPoints() - pointsUsed + pointsEarned);
+            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            user.setLoyaltyPoints(newPoints);
+            user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);
         }
 
@@ -196,6 +203,35 @@ public class BookingService {
         userRepository.save(user);
 
         return BookingResponseDTO.fromEntity(bookingRepository.save(booking));
+    }
+
+    /**
+     * Runs every 60 seconds. Finds PENDING bookings whose expiryTime has passed,
+     * marks them EXPIRED, and restores available seat counts.
+     */
+    @Scheduled(fixedRate = 60_000)
+    @Transactional
+    public void expireStaleBookings() {
+        List<Booking> expired = bookingRepository
+                .findByStatusAndExpiryTimeBefore(Booking.BookingStatus.PENDING, LocalDateTime.now());
+        for (Booking booking : expired) {
+            booking.setStatus(Booking.BookingStatus.EXPIRED);
+            int seatCount = booking.getBookingSeats() == null ? 0 : booking.getBookingSeats().size();
+            if (seatCount > 0) {
+                Screening screening = booking.getScreening();
+                screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
+                screeningRepository.save(screening);
+            }
+            bookingRepository.save(booking);
+        }
+    }
+
+    private User.MembershipTier calculateTier(int points) {
+        if (points >= 10000) return User.MembershipTier.DIAMOND;
+        if (points >= 3000)  return User.MembershipTier.PLATINUM;
+        if (points >= 1000)  return User.MembershipTier.GOLD;
+        if (points >= 300)   return User.MembershipTier.SILVER;
+        return User.MembershipTier.BRONZE;
     }
 
     private String generateBookingCode() {
