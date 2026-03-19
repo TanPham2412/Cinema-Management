@@ -61,6 +61,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                 // VNPay endpoints - return, callback & IPN must be public
                 .requestMatchers("/payment/vnpay/return", "/payment/vnpay/callback", "/payment/vnpay/ipn").permitAll()
+                // MoMo endpoints - return & notify must be public
+                .requestMatchers("/payment/momo/return", "/payment/momo/notify", "/payment/momo/test-confirm").permitAll()
                 // Reviews - require authentication (any user can review)
                 .requestMatchers("/reviews/**").authenticated()
                 // WebSocket and uploads

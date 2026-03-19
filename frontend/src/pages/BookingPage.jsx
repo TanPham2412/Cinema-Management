@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { Tag, Clock, Building2, Calendar, Film, X, ChevronLeft } from 'lucide-react'
 import bookingService from '../services/bookingService'
+import api from '../services/api'
+import websocketService from '../services/websocketService'
 
 const PAYMENT_METHODS = [
-  { value: 'VNPAY',       label: 'VNPay',        icon: '💳', desc: 'Thanh toán qua VNPay' },
-  { value: 'MOMO',        label: 'MoMo',          icon: '🟣', desc: 'Ví điện tử MoMo' },
-  { value: 'CREDIT_CARD', label: 'Thẻ tín dụng',  icon: '💰', desc: 'Visa / Mastercard' },
-  { value: 'CASH',        label: 'Tiền mặt',      icon: '🏧', desc: 'Thanh toán tại quầy' },
+  { value: 'VNPAY', label: 'VNPay', icon: '💳', desc: 'Thanh toán qua VNPay' },
+  { value: 'MOMO',  label: 'MoMo',  icon: '🟣', desc: 'Ví điện tử MoMo' },
 ]
 
 const SEAT_TYPES = {
@@ -22,6 +22,7 @@ const ROW_ORDER = ['H', 'G', 'F', 'E', 'D', 'C', 'B', 'A']
 // Seat cushion button — BetaCinemas style
 function SeatBtn({ seat, selected, onClick }) {
   const booked = seat.status === 'BOOKED'
+  const held = seat.status === 'HELD'
   let cls =
     'w-[44px] h-[38px] rounded flex items-center justify-center text-[10px] font-bold select-none transition-colors '
   let style = {}
@@ -31,6 +32,8 @@ function SeatBtn({ seat, selected, onClick }) {
   } else if (selected) {
     cls += 'bg-[#1a3a6c] text-white cursor-pointer'
     style.boxShadow = '0 3px 0 rgba(15,35,80,0.4)'
+  } else if (held) {
+    cls += 'bg-[#5cb8e4] text-white cursor-not-allowed'
   } else if (seat.seatType === 'VIP') {
     cls += 'bg-[#f5c842] text-gray-800 cursor-pointer hover:bg-yellow-300'
     style.boxShadow = '0 3px 0 rgba(0,0,0,0.18)'
@@ -83,12 +86,107 @@ const BookingPage = () => {
   const [timeLeft, setTimeLeft] = useState(600)
   const [showCheckout, setShowCheckout] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('VNPAY')
+  const [momoBookingCode, setMomoBookingCode] = useState(null)
+  const [momoPaymentUrl, setMomoPaymentUrl] = useState(null)
+  const [momoConfirming, setMomoConfirming] = useState(false)
 
-  // Countdown timer
+  // Real-time seat holding via WebSocket
+  const [wsHeldSeats, setWsHeldSeats] = useState(new Set())
+  const [wsBookedSeats, setWsBookedSeats] = useState(new Set()) // confirmed by others in real-time
+  const [timerRunning, setTimerRunning] = useState(false)
+  const [showExpiredDialog, setShowExpiredDialog] = useState(false)
+  const selectedSeatsRef = useRef([])
+  const bookingCreatedRef = useRef(false)
+  const vnpayOpenedRef = useRef(false)   // true while VNPay new-tab is open
+  const [momoBookingId, setMomoBookingId] = useState(null)
+  const [vnpayBookingCode, setVnpayBookingCode] = useState(null)
+  const [vnpayBookingId, setVnpayBookingId] = useState(null)
+  const [vnpayPaymentUrl, setVnpayPaymentUrl] = useState(null)
+
+  useEffect(() => { selectedSeatsRef.current = selectedSeats }, [selectedSeats])
+
+  const handleMomoTestConfirm = async () => {
+    setMomoConfirming(true)
+    try {
+      await api.get(`/payment/momo/test-confirm`, { params: { bookingCode: momoBookingCode } })
+    } catch {
+      // backend redirects which axios will follow — ignore redirect error
+    }
+    // Navigate to result page directly
+    navigate(`/payment/momo/result?success=true&bookingCode=${momoBookingCode}&resultCode=0&message=Test+success`)
+  }
+
+  // Start timer when user selects first seat; reset/stop when all deselected
   useEffect(() => {
-    const t = setInterval(() => setTimeLeft((s) => (s > 0 ? s - 1 : 0)), 1000)
+    if (selectedSeats.length > 0 && !timerRunning) {
+      setTimerRunning(true)
+      setTimeLeft(600)
+    } else if (selectedSeats.length === 0 && timerRunning) {
+      setTimerRunning(false)
+      setTimeLeft(600)
+    }
+  }, [selectedSeats.length]) // eslint-disable-line
+
+  // Countdown — only when running
+  useEffect(() => {
+    if (!timerRunning) return
+    const t = setInterval(() => setTimeLeft((s) => Math.max(0, s - 1)), 1000)
     return () => clearInterval(t)
-  }, [])
+  }, [timerRunning])
+
+  // Timer expiry: release seats and show expired dialog
+  useEffect(() => {
+    if (timeLeft === 0 && timerRunning) {
+      selectedSeatsRef.current.forEach((seat) => {
+        websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      })
+      setSelectedSeats([])
+      setTimerRunning(false)
+      setShowExpiredDialog(true)
+    }
+  }, [timeLeft]) // eslint-disable-line
+
+  // WebSocket: connect for real-time seat updates; release + disconnect on unmount
+  useEffect(() => {
+    // Fetch initial held seats from backend (for users who join late)
+    api.get(`/screenings/${screeningId}/held-seats`).then((res) => {
+      const heldIds = res.data || []
+      setWsHeldSeats(new Set(heldIds.map(String)))
+    }).catch(() => {})
+
+    websocketService.connect(parseInt(screeningId), (msg) => {
+      const { seatId, action, userId } = msg
+      if (userId === user?.email) return // ignore own messages
+      if (action === 'CONFIRM') {
+        // Payment confirmed: seat is now sold — move from held to booked
+        setWsHeldSeats((prev) => { const n = new Set(prev); n.delete(String(seatId)); return n })
+        setWsBookedSeats((prev) => { const n = new Set(prev); n.add(String(seatId)); return n })
+        // Update local seat status to prevent stale DB cache showing as HELD
+        setSeats((prev) => prev.map((s) => String(s.id) === String(seatId) ? { ...s, status: 'BOOKED' } : s))
+        // If this confirms MY payment (seat in my selection), navigate to profile
+        if (selectedSeatsRef.current.some((s) => String(s.id) === String(seatId))) {
+          vnpayOpenedRef.current = false
+          navigate('/profile')
+        }
+      } else if (action === 'SELECT') {
+        setWsHeldSeats((prev) => { const n = new Set(prev); n.add(String(seatId)); return n })
+      } else { // RELEASE
+        setWsHeldSeats((prev) => { const n = new Set(prev); n.delete(String(seatId)); return n })
+        // CRITICAL: update local seat status to AVAILABLE so stale DB HELD doesn't block rebooking
+        setSeats((prev) => prev.map((s) => String(s.id) === String(seatId) ? { ...s, status: 'AVAILABLE' } : s))
+      }
+    })
+    return () => {
+      if (!bookingCreatedRef.current) {
+        // Only release from SeatHoldStore if no booking was created yet
+        // (once a booking exists as PENDING in DB, it owns the hold — expiry scheduler will release)
+        selectedSeatsRef.current.forEach((seat) => {
+          websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+        })
+      }
+      websocketService.disconnect()
+    }
+  }, [screeningId]) // eslint-disable-line
 
   useEffect(() => {
     if (!user) {
@@ -147,14 +245,29 @@ const BookingPage = () => {
     }
   }
 
+  // Compute effective seat status: DB status > WS real-time
+  // Own selected seats should NOT show as HELD (their HELD/PENDING is from our own booking)
+  const getEffectiveStatus = (seat) => {
+    const isOwnSelection = selectedSeats.find((s) => s.id === seat.id)
+    if (seat.status === 'BOOKED') return 'BOOKED'
+    if (wsBookedSeats.has(String(seat.id))) return 'BOOKED'
+    if (seat.status === 'HELD' && !isOwnSelection) return 'HELD'
+    if (wsHeldSeats.has(String(seat.id)) && !isOwnSelection) return 'HELD'
+    return seat.status
+  }
+
   const toggleSeat = (seat) => {
     if (seat.status === 'BOOKED') return
-    setSelectedSeats((prev) => {
-      const exists = prev.find((s) => s.id === seat.id)
-      if (exists) return prev.filter((s) => s.id !== seat.id)
-      if (prev.length >= 8) return prev // max 8 seats
-      return [...prev, seat]
-    })
+    // Block clicking on HELD seats that aren't our own selection
+    const isOwnSelection = selectedSeats.find((s) => s.id === seat.id)
+    if (seat.status === 'HELD' && !isOwnSelection) return
+    if (isOwnSelection) {
+      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id))
+    } else if (selectedSeats.length < 8) {
+      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'SELECT', user?.email)
+      setSelectedSeats((prev) => [...prev, seat])
+    }
   }
 
   const seatPrice = (seat) =>
@@ -177,6 +290,11 @@ const BookingPage = () => {
     if (!selectedSeats.length) return
     setBooking(true)
     try {
+      // Re-send SELECT for all seats (ensures SeatHoldStore is current, handles payment retries)
+      selectedSeats.forEach((seat) => {
+        websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'SELECT', user?.email)
+      })
+
       const result = await bookingService.createBooking({
         screeningId: parseInt(screeningId),
         seatIds: selectedSeats.map((s) => s.id),
@@ -186,10 +304,23 @@ const BookingPage = () => {
 
       setShowCheckout(false)
 
+      // Booking created (PENDING in DB) — DB now owns the seat hold.
+      // Backend will broadcast CONFIRM via WebSocket when payment is actually confirmed.
+      bookingCreatedRef.current = true
+
       if (paymentMethod === 'VNPAY') {
-        // Get VNPay payment URL and redirect browser to VNPay
         const { paymentUrl } = await bookingService.createVNPayUrl(result.bookingCode)
-        window.location.href = paymentUrl
+        setVnpayBookingCode(result.bookingCode)
+        setVnpayBookingId(result.id)
+        setVnpayPaymentUrl(paymentUrl)
+        vnpayOpenedRef.current = true
+        window.open(paymentUrl, '_blank') // keep BookingPage alive; user can retry if payment fails
+      } else if (paymentMethod === 'MOMO') {
+        const { paymentUrl } = await bookingService.createMoMoUrl(result.bookingCode)
+        setMomoBookingCode(result.bookingCode)
+        setMomoBookingId(result.id)
+        setMomoPaymentUrl(paymentUrl)
+        window.open(paymentUrl, '_blank')
       } else {
         navigate('/booking/confirm', {
           state: {
@@ -209,6 +340,44 @@ const BookingPage = () => {
     } finally {
       setBooking(false)
     }
+  }
+
+  // Cancel an in-progress MoMo payment (user closed/cancelled the MoMo tab)
+  const handleMomoCancel = async () => {
+    try {
+      if (momoBookingId) await bookingService.cancelBooking(momoBookingId)
+    } catch {
+      // ignore — booking may have already expired or been cancelled
+    }
+    // Explicitly release WS hold and update local seat state
+    selectedSeatsRef.current.forEach((seat) => {
+      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      setSeats((prev) => prev.map((s) => s.id === seat.id ? { ...s, status: 'AVAILABLE' } : s))
+    })
+    setSelectedSeats([])
+    setMomoBookingCode(null)
+    setMomoBookingId(null)
+    setMomoPaymentUrl(null)
+    bookingCreatedRef.current = false
+  }
+
+  // Cancel an in-progress VNPay payment (user closed the VNPay tab without paying)
+  const handleVnpayCancel = async () => {
+    try {
+      if (vnpayBookingId) await bookingService.cancelBooking(vnpayBookingId)
+    } catch {
+      // ignore — booking may have already been cancelled via redirect
+    }
+    selectedSeatsRef.current.forEach((seat) => {
+      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      setSeats((prev) => prev.map((s) => s.id === seat.id ? { ...s, status: 'AVAILABLE' } : s))
+    })
+    setSelectedSeats([])
+    setVnpayBookingCode(null)
+    setVnpayBookingId(null)
+    setVnpayPaymentUrl(null)
+    vnpayOpenedRef.current = false
+    bookingCreatedRef.current = false
   }
 
   if (loading) {
@@ -254,7 +423,6 @@ const BookingPage = () => {
                 <LegendSeat color="bg-[#1a3a6c]" label="Ghế đang chọn" />
                 <LegendSeat color="bg-[#5cb8e4]" label="Ghế đang giữ" />
                 <LegendSeat color="bg-red-500"   label="Ghế đã bán" />
-                <LegendSeat color="bg-[#f5c842]" label="Ghế đặt trước" />
               </div>
 
               {/* Curved cinema screen */}
@@ -288,7 +456,7 @@ const BookingPage = () => {
                         {rowSeats.map((seat) => (
                           <SeatBtn
                             key={seat.id}
-                            seat={seat}
+                            seat={{ ...seat, status: getEffectiveStatus(seat) }}
                             selected={!!selectedSeats.find((s) => s.id === seat.id)}
                             onClick={toggleSeat}
                           />
@@ -427,8 +595,10 @@ const BookingPage = () => {
           {/* Countdown */}
           <div className="text-center shrink-0">
             <p className="text-xs text-gray-400 mb-0.5">Thời gian còn lại</p>
-            <p className="font-black text-white text-2xl tracking-tight leading-none">
-              {fmtTimer(timeLeft)}
+            <p className={`font-black text-2xl tracking-tight leading-none ${
+              timerRunning && timeLeft <= 60 ? 'text-red-400 animate-pulse' : 'text-white'
+            }`}>
+              {timerRunning ? fmtTimer(timeLeft) : '--:--'}
             </p>
           </div>
         </div>
@@ -542,6 +712,112 @@ const BookingPage = () => {
               <p className="text-center text-xs text-gray-400 mt-2">
                 Bằng cách đặt vé, bạn đồng ý với điều khoản sử dụng của LLMCinema
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Timer Expired Dialog ─── */}
+      {showExpiredDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-red-600 px-6 py-6 text-center">
+              <div className="text-5xl mb-2">⏰</div>
+              <h2 className="text-white font-black text-lg">Quá thời gian thanh toán!</h2>
+              <p className="text-red-200 text-sm mt-1">Thời gian giữ ghế (10 phút) đã hết</p>
+            </div>
+            <div className="px-6 py-5 text-center space-y-4">
+              <p className="text-gray-600 text-sm">
+                Các ghế đã chọn đã được giải phóng. Vui lòng chọn lại ghế và hoàn tất thanh toán trước khi hết giờ.
+              </p>
+              <button
+                onClick={() => setShowExpiredDialog(false)}
+                className="w-full py-3 bg-cinema-red hover:bg-red-700 text-white font-black rounded-xl text-sm transition-colors"
+              >
+                Chọn lại ghế
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── VNPay Pending Dialog ─── */}
+      {vnpayBookingCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-[#0066b2] px-6 py-5 text-center">
+              <div className="text-4xl mb-1">💳</div>
+              <h2 className="text-white font-black text-lg">Thanh toán VNPay</h2>
+              <p className="text-blue-200 text-xs mt-1">Cổng thanh toán đã mở ở tab mới</p>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">Mã đặt vé</p>
+                <p className="font-mono font-bold text-gray-800 text-sm tracking-wider">{vnpayBookingCode}</p>
+              </div>
+              <p className="text-sm text-gray-600 text-center">
+                Vui lòng hoàn tất thanh toán trên trang VNPay. Trang sẽ tự động chuyển khi thanh toán thành công.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => window.open(vnpayPaymentUrl, '_blank')}
+                  className="w-full py-2.5 border-2 border-[#0066b2] text-[#0066b2] font-bold rounded-xl text-sm hover:bg-blue-50 transition-colors"
+                >
+                  🔗 Mở lại trang VNPay
+                </button>
+                <button
+                  onClick={handleVnpayCancel}
+                  className="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors"
+                >
+                  Hủy thanh toán
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MoMo Test Confirm Dialog ─── */}
+      {momoBookingCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-[#ae2070] px-6 py-5 text-center">
+              <div className="text-4xl mb-1">🟣</div>
+              <h2 className="text-white font-black text-lg">Thanh toán MoMo</h2>
+              <p className="text-pink-200 text-xs mt-1">Cổng thanh toán đã mở ở tab mới</p>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">Mã đặt vé</p>
+                <p className="font-mono font-bold text-gray-800 text-sm tracking-wider">{momoBookingCode}</p>
+              </div>
+              <p className="text-sm text-gray-600 text-center">
+                Sau khi thanh toán xong trên trang MoMo, bấm nút bên dưới để xác nhận.
+              </p>
+              <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                ⚠️ Chế độ TEST — bấm xác nhận để giả lập thanh toán thành công
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleMomoTestConfirm}
+                  disabled={momoConfirming}
+                  className="block w-full py-3 bg-[#ae2070] hover:bg-[#8f1a5c] disabled:bg-gray-400 text-white font-black rounded-xl text-center text-sm transition-colors"
+                >
+                  {momoConfirming ? 'Đang xác nhận...' : '✅ Xác nhận đã thanh toán (Test)'}
+                </button>
+                <button
+                  onClick={() => window.open(momoPaymentUrl, '_blank')}
+                  className="w-full py-2.5 border-2 border-[#ae2070] text-[#ae2070] font-bold rounded-xl text-sm hover:bg-pink-50 transition-colors"
+                >
+                  🔗 Mở lại trang MoMo
+                </button>
+                <button
+                  onClick={handleMomoCancel}
+                  className="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors"
+                >
+                  Hủy thanh toán
+                </button>
+              </div>
             </div>
           </div>
         </div>

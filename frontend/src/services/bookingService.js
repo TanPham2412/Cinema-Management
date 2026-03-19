@@ -30,6 +30,11 @@ const createVNPayUrl = async (bookingCode) => {
   return response.data // { paymentUrl: "..." }
 }
 
+const createMoMoUrl = async (bookingCode) => {
+  const response = await api.get('/payment/momo/create', { params: { bookingCode } })
+  return response.data // { paymentUrl: "..." }
+}
+
 const bookingService = {
   createBooking,
   getUserBookings,
@@ -37,6 +42,7 @@ const bookingService = {
   cancelBooking,
   getScreeningSeats,
   createVNPayUrl,
+  createMoMoUrl,
 }
 
 export default bookingService

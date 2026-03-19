@@ -3,6 +3,7 @@ package Nhom5.cinema_management.controller;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import Nhom5.cinema_management.dto.ScreeningDTO;
 import Nhom5.cinema_management.service.ScreeningService;
+import Nhom5.cinema_management.service.SeatHoldStore;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -29,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class ScreeningController {
 
     private final ScreeningService screeningService;
+    private final SeatHoldStore seatHoldStore;
 
     // Public endpoints
     @GetMapping
@@ -44,6 +47,12 @@ public class ScreeningController {
     @GetMapping("/{id}/seats")
     public ResponseEntity<Map<String, Object>> getSeats(@PathVariable Long id) {
         return ResponseEntity.ok(screeningService.getScreeningWithSeats(id));
+    }
+
+    /** Returns seat IDs currently held (in-progress selection) by any user for this screening. */
+    @GetMapping("/{id}/held-seats")
+    public ResponseEntity<Set<String>> getHeldSeats(@PathVariable Long id) {
+        return ResponseEntity.ok(seatHoldStore.getHeldSeatIds(id));
     }
 
     @GetMapping("/movie/{movieId}")
