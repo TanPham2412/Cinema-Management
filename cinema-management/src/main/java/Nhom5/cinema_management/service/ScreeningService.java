@@ -109,11 +109,21 @@ public class ScreeningService {
         Screening s = screeningRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Screening not found: " + id));
 
-        // Collect booked seat IDs (non-cancelled bookings)
-        java.util.Set<Long> bookedSeatIds = s.getBookings() == null ? java.util.Set.of() :
+        // Separate CONFIRMED seats (sold = red) from PENDING not-expired (held = light blue)
+        LocalDateTime now = LocalDateTime.now();
+
+        java.util.Set<Long> confirmedSeatIds = s.getBookings() == null ? java.util.Set.of() :
                 s.getBookings().stream()
-                        .filter(b -> b.getStatus() != Booking.BookingStatus.CANCELLED
-                                  && b.getStatus() != Booking.BookingStatus.EXPIRED)
+                        .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED)
+                        .flatMap(b -> b.getBookingSeats() == null ? java.util.stream.Stream.empty()
+                                : b.getBookingSeats().stream())
+                        .map(bs -> bs.getSeat().getId())
+                        .collect(java.util.stream.Collectors.toSet());
+
+        java.util.Set<Long> pendingSeatIds = s.getBookings() == null ? java.util.Set.of() :
+                s.getBookings().stream()
+                        .filter(b -> b.getStatus() == Booking.BookingStatus.PENDING
+                                  && (b.getExpiryTime() == null || b.getExpiryTime().isAfter(now)))
                         .flatMap(b -> b.getBookingSeats() == null ? java.util.stream.Stream.empty()
                                 : b.getBookingSeats().stream())
                         .map(bs -> bs.getSeat().getId())
@@ -127,7 +137,15 @@ public class ScreeningService {
                     seatMap.put("seatRow", seat.getSeatRow());
                     seatMap.put("seatNumber", seat.getSeatNumber());
                     seatMap.put("seatType", seat.getSeatType().name());
-                    seatMap.put("status", bookedSeatIds.contains(seat.getId()) ? "BOOKED" : "AVAILABLE");
+                    String seatStatus;
+                    if (confirmedSeatIds.contains(seat.getId())) {
+                        seatStatus = "BOOKED"; // sold - red
+                    } else if (pendingSeatIds.contains(seat.getId())) {
+                        seatStatus = "HELD"; // payment in progress - light blue
+                    } else {
+                        seatStatus = "AVAILABLE";
+                    }
+                    seatMap.put("status", seatStatus);
                     return seatMap;
                 }).toList();
 

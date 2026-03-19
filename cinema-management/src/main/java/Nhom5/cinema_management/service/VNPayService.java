@@ -15,10 +15,13 @@ import java.util.TimeZone;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import Nhom5.cinema_management.config.VNPayConfig;
 import Nhom5.cinema_management.model.Booking;
+import Nhom5.cinema_management.model.BookingSeat;
 import Nhom5.cinema_management.model.Payment;
 import Nhom5.cinema_management.model.User;
 import Nhom5.cinema_management.repository.BookingRepository;
@@ -38,6 +41,8 @@ public class VNPayService {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final SeatHoldStore seatHoldStore;
 
     /**
      * Generate VNPay payment URL for a booking
@@ -140,16 +145,20 @@ public class VNPayService {
     }
 
     /**
-     * Confirm booking after successful VNPay payment
+     * Confirm booking after successful VNPay payment.
+     * Broadcasts WS CONFIRM (success) or RELEASE (failure) for each seat in real-time.
      */
+    @Transactional
     public void confirmPayment(String bookingCode, String vnpTransactionNo, String vnpBankCode, String responseCode) {
-        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+        // Use JOIN FETCH to eager-load bookingSeats + seat so WS broadcast doesn't hit LazyInitializationException
+        Booking booking = bookingRepository.findByBookingCodeWithSeats(bookingCode)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingCode));
 
         Payment payment = paymentRepository.findByBookingId(booking.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Payment not found for booking: " + bookingCode));
 
-        if ("00".equals(responseCode)) {
+        boolean success = "00".equals(responseCode);
+        if (success) {
             // Payment successful
             booking.setStatus(Booking.BookingStatus.CONFIRMED);
             payment.setStatus(Payment.PaymentStatus.COMPLETED);
@@ -161,7 +170,9 @@ public class VNPayService {
             User user = booking.getUser();
             int pointsUsed = booking.getPointsUsed() != null ? booking.getPointsUsed() : 0;
             int pointsEarned = booking.getPointsEarned() != null ? booking.getPointsEarned() : 0;
-            user.setLoyaltyPoints(user.getLoyaltyPoints() - pointsUsed + pointsEarned);
+            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            user.setLoyaltyPoints(newPoints);
+            user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);
         } else {
             // Payment failed
@@ -173,6 +184,38 @@ public class VNPayService {
         bookingRepository.save(booking);
         paymentRepository.save(payment);
         log.info("VNPay payment processed for booking {} - responseCode: {}", bookingCode, responseCode);
+
+        // Broadcast real-time seat status — wrapped in try-catch so WS failures
+        // never roll back the critical DB changes above
+        try {
+            broadcastSeatUpdate(booking, success ? "CONFIRM" : "RELEASE");
+        } catch (Exception wsErr) {
+            log.error("WS broadcast failed for booking {}: {}", bookingCode, wsErr.getMessage(), wsErr);
+        }
+    }
+
+    /** Broadcast WS action for every seat that belongs to the given booking. */
+    private void broadcastSeatUpdate(Booking booking, String action) {
+        if (booking.getBookingSeats() == null) return;
+        Long screeningId = booking.getScreening().getId();
+        for (BookingSeat bs : booking.getBookingSeats()) {
+            String seatId = String.valueOf(bs.getSeat().getId());
+            seatHoldStore.release(screeningId, seatId);
+            Map<String, Object> wsMsg = new HashMap<>();
+            wsMsg.put("screeningId", screeningId);
+            wsMsg.put("seatId", bs.getSeat().getId());
+            wsMsg.put("action", action);
+            wsMsg.put("userId", null);
+            messagingTemplate.convertAndSend("/topic/seats/" + screeningId, (Object) wsMsg);
+        }
+    }
+
+    private User.MembershipTier calculateTier(int points) {
+        if (points >= 10000) return User.MembershipTier.DIAMOND;
+        if (points >= 3000)  return User.MembershipTier.PLATINUM;
+        if (points >= 1000)  return User.MembershipTier.GOLD;
+        if (points >= 300)   return User.MembershipTier.SILVER;
+        return User.MembershipTier.BRONZE;
     }
 
     /**

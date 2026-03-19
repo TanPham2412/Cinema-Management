@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,8 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final SeatHoldStore seatHoldStore;
 
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request, String userEmail) {
@@ -61,10 +65,14 @@ public class BookingService {
         }
 
         // Check seats are not already booked in this screening
+        LocalDateTime now = LocalDateTime.now();
         List<Long> bookedSeatIds = screening.getBookings() == null ? List.of() :
                 screening.getBookings().stream()
                         .filter(b -> b.getStatus() != Booking.BookingStatus.CANCELLED
-                                  && b.getStatus() != Booking.BookingStatus.EXPIRED)
+                                  && b.getStatus() != Booking.BookingStatus.EXPIRED
+                                  && !(b.getStatus() == Booking.BookingStatus.PENDING
+                                       && b.getExpiryTime() != null
+                                       && b.getExpiryTime().isBefore(now)))
                         .flatMap(b -> b.getBookingSeats() == null ? java.util.stream.Stream.empty()
                                 : b.getBookingSeats().stream())
                         .map(bs -> bs.getSeat().getId())
@@ -84,7 +92,7 @@ public class BookingService {
             return price;
         }).sum();
 
-        int pointsUsed = request.getPointsUsed() != null ? request.getPointsUsed() : 0;
+        int pointsUsed = request.getPointsUsed() == null ? 0 : request.getPointsUsed();
         if (pointsUsed > 0) {
             if (user.getLoyaltyPoints() < pointsUsed) {
                 throw new IllegalArgumentException("Không đủ điểm tích lũy");
@@ -95,8 +103,9 @@ public class BookingService {
 
         int pointsEarned = (int) (total / 10000); // 1 point per 10,000đ
 
-        // Determine if this is a VNPay payment (will stay PENDING until IPN confirms)
-        boolean isVNPay = "VNPAY".equalsIgnoreCase(request.getPaymentMethod());
+        // Gateway payments (VNPay, MoMo) stay PENDING until IPN/notify confirms
+        String pm = request.getPaymentMethod();
+        boolean isGatewayPayment = "VNPAY".equalsIgnoreCase(pm) || "MOMO".equalsIgnoreCase(pm);
 
         // Create booking
         Booking booking = Booking.builder()
@@ -107,7 +116,7 @@ public class BookingService {
                 .totalAmount(total)
                 .pointsEarned(pointsEarned)
                 .pointsUsed(pointsUsed)
-                .status(isVNPay ? Booking.BookingStatus.PENDING : Booking.BookingStatus.CONFIRMED)
+                .status(isGatewayPayment ? Booking.BookingStatus.PENDING : Booking.BookingStatus.CONFIRMED)
                 .expiryTime(LocalDateTime.now().plusMinutes(15))
                 .build();
 
@@ -129,22 +138,24 @@ public class BookingService {
         }
         savedBooking.setBookingSeats(bookingSeats);
 
-        // Create payment record (PENDING for VNPay, COMPLETED for others)
+        // Create payment record (PENDING for gateway payments, COMPLETED for others)
         Payment payment = Payment.builder()
                 .booking(savedBooking)
                 .amount(total)
                 .paymentMethod(parsePaymentMethod(request.getPaymentMethod()))
-                .status(isVNPay ? Payment.PaymentStatus.PENDING : Payment.PaymentStatus.COMPLETED)
-                .transactionId(isVNPay ? null : UUID.randomUUID().toString())
+                .status(isGatewayPayment ? Payment.PaymentStatus.PENDING : Payment.PaymentStatus.COMPLETED)
+                .transactionId(isGatewayPayment ? null : UUID.randomUUID().toString())
                 .createdAt(LocalDateTime.now())
-                .completedAt(isVNPay ? null : LocalDateTime.now())
+                .completedAt(isGatewayPayment ? null : LocalDateTime.now())
                 .build();
         paymentRepository.save(payment);
 
-        // For non-VNPay payments, update user loyalty points immediately
-        // For VNPay, loyalty points are updated in VNPayService.confirmPayment()
-        if (!isVNPay) {
-            user.setLoyaltyPoints(user.getLoyaltyPoints() - pointsUsed + pointsEarned);
+        // For non-gateway payments, update user loyalty points immediately
+        // For gateway payments, loyalty points are updated after confirmation
+        if (!isGatewayPayment) {
+            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            user.setLoyaltyPoints(newPoints);
+            user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);
         }
 
@@ -159,6 +170,7 @@ public class BookingService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
         return bookingRepository.findByUserId(user.getId()).stream()
+                .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED)
                 .map(BookingResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -171,7 +183,8 @@ public class BookingService {
 
     @Transactional
     public BookingResponseDTO cancelBooking(Long bookingId, String userEmail) {
-        Booking booking = bookingRepository.findById(bookingId)
+        // JOIN FETCH to avoid LazyInitializationException when broadcasting WS events
+        Booking booking = bookingRepository.findByIdWithSeats(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found"));
 
         // Only the owner can cancel
@@ -195,7 +208,75 @@ public class BookingService {
         user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
         userRepository.save(user);
 
-        return BookingResponseDTO.fromEntity(bookingRepository.save(booking));
+        BookingResponseDTO result = BookingResponseDTO.fromEntity(bookingRepository.save(booking));
+
+        // Broadcast WS RELEASE — wrapped in try-catch so WS failures don't roll back DB
+        try {
+            if (booking.getBookingSeats() != null) {
+                Long screeningId = screening.getId();
+                for (BookingSeat bs : booking.getBookingSeats()) {
+                    String seatId = String.valueOf(bs.getSeat().getId());
+                    seatHoldStore.release(screeningId, seatId);
+                    java.util.Map<String, Object> wsMsg = new java.util.HashMap<>();
+                    wsMsg.put("screeningId", screeningId);
+                    wsMsg.put("seatId", bs.getSeat().getId());
+                    wsMsg.put("action", "RELEASE");
+                    wsMsg.put("userId", null);
+                    messagingTemplate.convertAndSend("/topic/seats/" + screeningId, (Object) wsMsg);
+                }
+            }
+        } catch (Exception wsErr) {
+            // Log but don't propagate — DB cancel must succeed even if WS fails
+        }
+
+        return result;
+    }
+
+    /**
+     * Runs every 60 seconds. Finds PENDING bookings whose expiryTime has passed,
+     * marks them EXPIRED, and restores available seat counts.
+     */
+    @Scheduled(fixedRate = 60_000)
+    @Transactional
+    public void expireStaleBookings() {
+        // JOIN FETCH to avoid LazyInitializationException when broadcasting WS events
+        List<Booking> expired = bookingRepository
+                .findExpiredWithSeats(Booking.BookingStatus.PENDING, LocalDateTime.now());
+        for (Booking booking : expired) {
+            booking.setStatus(Booking.BookingStatus.EXPIRED);
+            int seatCount = booking.getBookingSeats() == null ? 0 : booking.getBookingSeats().size();
+            if (seatCount > 0) {
+                Screening screening = booking.getScreening();
+                screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
+                screeningRepository.save(screening);
+
+                // Broadcast WS RELEASE — wrapped in try-catch so expiry commit succeeds
+                try {
+                    Long screeningId = screening.getId();
+                    for (BookingSeat bs : booking.getBookingSeats()) {
+                        String seatId = String.valueOf(bs.getSeat().getId());
+                        seatHoldStore.release(screeningId, seatId);
+                        java.util.Map<String, Object> wsMsg = new java.util.HashMap<>();
+                        wsMsg.put("screeningId", screeningId);
+                        wsMsg.put("seatId", bs.getSeat().getId());
+                        wsMsg.put("action", "RELEASE");
+                        wsMsg.put("userId", null);
+                        messagingTemplate.convertAndSend("/topic/seats/" + screeningId, (Object) wsMsg);
+                    }
+                } catch (Exception wsErr) {
+                    // Log but don't propagate — DB expiry must succeed even if WS fails
+                }
+            }
+            bookingRepository.save(booking);
+        }
+    }
+
+    private User.MembershipTier calculateTier(int points) {
+        if (points >= 10000) return User.MembershipTier.DIAMOND;
+        if (points >= 3000)  return User.MembershipTier.PLATINUM;
+        if (points >= 1000)  return User.MembershipTier.GOLD;
+        if (points >= 300)   return User.MembershipTier.SILVER;
+        return User.MembershipTier.BRONZE;
     }
 
     private String generateBookingCode() {
