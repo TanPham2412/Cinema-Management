@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { CheckCircle, XCircle, Clock, Home, Ticket } from 'lucide-react'
+import { refreshUser } from '../redux/slices/authSlice'
 
 // MoMo result code descriptions
 const RESULT_MESSAGES = {
@@ -30,6 +32,7 @@ const RESULT_MESSAGES = {
 const MoMoReturnPage = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const success = searchParams.get('success') === 'true'
   const bookingCode = searchParams.get('bookingCode') || ''
@@ -38,6 +41,14 @@ const MoMoReturnPage = () => {
   const message = RESULT_MESSAGES[resultCode] || messageParam || 'Lỗi không xác định.'
 
   const [countdown, setCountdown] = useState(5)
+
+  // Refresh user data when payment succeeds
+  useEffect(() => {
+    if (success) {
+      dispatch(refreshUser()).catch(() => {})
+    }
+  }, [success, dispatch])
+
   useEffect(() => {
     if (!success) return
     if (countdown <= 0) { navigate('/profile'); return }

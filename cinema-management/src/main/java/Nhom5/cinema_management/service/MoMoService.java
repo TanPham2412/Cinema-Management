@@ -158,7 +158,8 @@ public class MoMoService {
             User user = booking.getUser();
             int pointsUsed = booking.getPointsUsed() == null ? 0 : booking.getPointsUsed();
             int pointsEarned = booking.getPointsEarned() == null ? 0 : booking.getPointsEarned();
-            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            int currentPoints = user.getLoyaltyPoints() != null ? user.getLoyaltyPoints() : 0;
+            int newPoints = Math.max(0, currentPoints - pointsUsed + pointsEarned);
             user.setLoyaltyPoints(newPoints);
             user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { CheckCircle, XCircle, Clock, Home, Ticket } from 'lucide-react'
+import { refreshUser } from '../redux/slices/authSlice'
 
 // VNPay response code descriptions
 const RESPONSE_MESSAGES = {
@@ -23,6 +25,7 @@ const RESPONSE_MESSAGES = {
 const VNPayReturnPage = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   // Backend redirect passes these simple params
   const success = searchParams.get('success') === 'true'
@@ -31,6 +34,14 @@ const VNPayReturnPage = () => {
   const message = RESPONSE_MESSAGES[responseCode] || RESPONSE_MESSAGES['99']
 
   const [countdown, setCountdown] = useState(5)
+
+  // Refresh user data when payment succeeds
+  useEffect(() => {
+    if (success) {
+      dispatch(refreshUser()).catch(() => {})
+    }
+  }, [success, dispatch])
+
   useEffect(() => {
     if (!success) return
     if (countdown <= 0) { navigate('/profile'); return }

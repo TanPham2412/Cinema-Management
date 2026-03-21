@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { Tag, Clock, Building2, Calendar, Film, X, ChevronLeft } from 'lucide-react'
+import { Tag, Clock, Building2, Calendar, Film, X, ChevronLeft, ShoppingBag } from 'lucide-react'
 import bookingService from '../services/bookingService'
+import comboService from '../services/comboService'
 import api from '../services/api'
 import websocketService from '../services/websocketService'
 
@@ -103,7 +104,15 @@ const BookingPage = () => {
   const [vnpayBookingId, setVnpayBookingId] = useState(null)
   const [vnpayPaymentUrl, setVnpayPaymentUrl] = useState(null)
 
+  // Combo state
+  const [combos, setCombos] = useState([])
+  const [selectedCombos, setSelectedCombos] = useState({}) // { comboId: quantity }
+
   useEffect(() => { selectedSeatsRef.current = selectedSeats }, [selectedSeats])
+
+  useEffect(() => {
+    comboService.getAvailableCombos().then(setCombos).catch(() => {})
+  }, [])
 
   const handleMomoTestConfirm = async () => {
     setMomoConfirming(true)
@@ -273,7 +282,24 @@ const BookingPage = () => {
   const seatPrice = (seat) =>
     (screeningInfo?.basePrice || 90000) + (SEAT_TYPES[seat.seatType]?.price || 0)
 
-  const total = selectedSeats.reduce((sum, s) => sum + seatPrice(s), 0)
+  const comboTotal = Object.entries(selectedCombos).reduce((sum, [id, qty]) => {
+    const combo = combos.find(c => c.id === Number(id))
+    return sum + (combo ? combo.price * qty : 0)
+  }, 0)
+
+  const total = selectedSeats.reduce((sum, s) => sum + seatPrice(s), 0) + comboTotal
+
+  const changeComboQty = (comboId, delta) => {
+    setSelectedCombos(prev => {
+      const cur = prev[comboId] || 0
+      const next = Math.max(0, cur + delta)
+      if (next === 0) {
+        const { [comboId]: _, ...rest } = prev
+        return rest
+      }
+      return { ...prev, [comboId]: next }
+    })
+  }
 
   const seatsByRow = seats.reduce((acc, seat) => {
     if (!acc[seat.seatRow]) acc[seat.seatRow] = []
@@ -298,7 +324,9 @@ const BookingPage = () => {
       const result = await bookingService.createBooking({
         screeningId: parseInt(screeningId),
         seatIds: selectedSeats.map((s) => s.id),
-        combos: [],
+        combos: Object.entries(selectedCombos)
+          .filter(([, qty]) => qty > 0)
+          .map(([id, qty]) => ({ comboId: Number(id), quantity: qty })),
         paymentMethod,
       })
 
@@ -563,7 +591,20 @@ const BookingPage = () => {
               />
 
               <button
-                onClick={() => setShowCheckout(true)}
+                onClick={() => {
+                  if (!selectedSeats.length) return
+                  // Prevent WebSocket seat release on unmount
+                  bookingCreatedRef.current = true
+                  navigate('/booking/confirm', {
+                    state: {
+                      preBooking: {
+                        screeningId: parseInt(screeningId),
+                        seats: selectedSeats,
+                        screeningInfo,
+                      }
+                    }
+                  })
+                }}
                 disabled={!selectedSeats.length || booking}
                 className="mt-4 w-full py-2.5 bg-[#1a3a6c] hover:bg-[#15306b] disabled:bg-cinema-gray-light disabled:text-gray-600 disabled:cursor-not-allowed text-white font-black rounded tracking-[0.15em] text-sm transition-colors"
               >
@@ -605,112 +646,194 @@ const BookingPage = () => {
       </div>
       {/* ─── Checkout overlay ─── */}
       {showCheckout && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-0 sm:px-4">
-          <div className="w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md px-0 sm:px-4">
+          <div className="w-full sm:max-w-lg bg-[#111111] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowCheckout(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <ChevronLeft size={20} />
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowCheckout(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                  <ChevronLeft size={18} />
                 </button>
-                <h2 className="font-black text-gray-800 text-base">Xác nhận đặt vé</h2>
+                <h2 className="font-black text-white text-lg tracking-wide uppercase">Xác nhận đặt vé</h2>
               </div>
-              <button onClick={() => setShowCheckout(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => setShowCheckout(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 custom-scrollbar">
               {/* Movie + screening summary */}
-              <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
-                <div className="flex gap-3 items-start">
+              <div className="px-6 py-5 bg-[#181818] border-b border-white/5">
+                <div className="flex gap-4 items-start">
                   {screeningInfo?.posterUrl && (
-                    <img
-                      src={screeningInfo.posterUrl.startsWith('/api') ? screeningInfo.posterUrl : `/api${screeningInfo.posterUrl}`}
-                      alt={screeningInfo.movieTitle}
-                      className="w-16 rounded-lg object-cover aspect-[2/3] shrink-0"
-                    />
+                    <div className="relative shrink-0">
+                      <img
+                        src={screeningInfo.posterUrl.startsWith('/api') ? screeningInfo.posterUrl : `/api${screeningInfo.posterUrl}`}
+                        alt={screeningInfo.movieTitle}
+                        className="w-20 rounded-lg object-cover aspect-[2/3] shadow-lg"
+                      />
+                      <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"></div>
+                    </div>
                   )}
-                  <div className="flex-1">
-                    <p className="font-black text-gray-800 text-base leading-tight">{screeningInfo?.movieTitle}</p>
-                    <p className="text-gray-400 text-xs mt-0.5">{screeningInfo?.format || '2D Phụ đề'}</p>
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-gray-500 flex gap-1"><Building2 size={12} className="mt-0.5 shrink-0" />{screeningInfo?.cinemaName} · {screeningInfo?.screenName}</p>
-                      <p className="text-xs text-gray-500 flex gap-1"><Calendar size={12} className="mt-0.5 shrink-0" />{screeningInfo?.date} &nbsp;·&nbsp; {screeningInfo?.time}</p>
+                  <div className="flex-1 mt-1">
+                    <p className="font-black text-white text-lg leading-tight uppercase">{screeningInfo?.movieTitle}</p>
+                    <p className="text-gray-400 text-[11px] uppercase tracking-wider font-semibold mt-1">{screeningInfo?.format || '2D Phụ đề'}</p>
+                    <div className="mt-3 space-y-1.5">
+                      <p className="text-xs text-gray-400 flex items-center gap-2"><Building2 size={13} className="shrink-0 text-cinema-red" /> <span className="text-gray-300 font-medium">{screeningInfo?.cinemaName}</span> · {screeningInfo?.screenName}</p>
+                      <p className="text-xs text-gray-400 flex items-center gap-2"><Calendar size={13} className="shrink-0 text-cinema-red" /> <span className="text-gray-300 font-medium">{screeningInfo?.date}</span> &nbsp;·&nbsp; {screeningInfo?.time}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Seat summary */}
-              <div className="px-5 py-4 border-b border-gray-100">
-                <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Ghế đã chọn</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="px-6 py-5 border-b border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em] font-bold">Ghế đã chọn</p>
+                  <span className="text-xs font-semibold text-cinema-gold">{selectedSeats.length} ghế</span>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
                   {selectedSeats.map(s => (
-                    <div key={s.id} className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${
-                      s.seatType === 'VIP' ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
-                      : s.seatType === 'COUPLE' ? 'bg-pink-50 border-pink-300 text-pink-700'
-                      : 'bg-blue-50 border-blue-200 text-blue-700'
+                    <div key={s.id} className={`flex items-center gap-2 px-3 py-1.5 rounded bg-[#181818] border ${
+                      s.seatType === 'VIP' ? 'border-[#f5c842]/30 text-[#f5c842]'
+                      : s.seatType === 'COUPLE' ? 'border-pink-300/30 text-pink-300'
+                      : 'border-white/10 text-white'
                     }`}>
-                      {s.seatRow}{s.seatNumber}
-                      <span className="font-normal ml-1 opacity-70">
+                      <span className="text-sm font-black">{s.seatRow}{s.seatNumber}</span>
+                      <span className="w-px h-3 bg-white/20"></span>
+                      <span className="text-[10px] font-medium opacity-80 uppercase tracking-wide">
                         {s.seatType === 'VIP' ? 'VIP' : s.seatType === 'COUPLE' ? 'Đôi' : 'Thường'}
                       </span>
                     </div>
                   ))}
                 </div>
                 {/* Per-seat price breakdown */}
-                <div className="mt-3 space-y-1.5">
+                <div className="mt-4 space-y-2">
                   {selectedSeats.map(s => (
-                    <div key={s.id} className="flex justify-between text-sm">
-                      <span className="text-gray-600">Ghế {s.seatRow}{s.seatNumber} ({s.seatType === 'VIP' ? 'VIP' : s.seatType === 'COUPLE' ? 'Đôi' : 'Thường'})</span>
-                      <span className="font-semibold text-gray-800">{seatPrice(s).toLocaleString('vi-VN')} đ</span>
+                    <div key={s.id} className="flex justify-between items-center text-sm border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                      <span className="text-gray-400">
+                        Ghế <span className="text-white font-bold">{s.seatRow}{s.seatNumber}</span> 
+                        <span className="text-[10px] ml-1 opacity-70">({s.seatType === 'VIP' ? 'VIP' : s.seatType === 'COUPLE' ? 'Đôi' : 'Thường'})</span>
+                      </span>
+                      <span className="font-semibold text-gray-200">{seatPrice(s).toLocaleString('vi-VN')} đ</span>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Combo section */}
+              {combos.length > 0 && (
+                <div className="px-6 py-5 border-b border-white/5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <ShoppingBag size={14} className="text-cinema-gold" />
+                    <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em] font-bold">Combo ưu đãi</p>
+                  </div>
+                  <div className="space-y-3">
+                    {combos.map(combo => {
+                      const qty = selectedCombos[combo.id] || 0
+                      return (
+                        <div key={combo.id} className="flex items-center gap-3 bg-[#181818] rounded-xl p-3 border border-white/5">
+                          {combo.imageUrl ? (
+                            <img src={combo.imageUrl} alt={combo.name} className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-[#222] flex items-center justify-center shrink-0 text-2xl">🍿</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-bold text-sm leading-tight">{combo.name}</p>
+                            <p className="text-gray-400 text-[11px] mt-0.5 line-clamp-2 leading-relaxed">{combo.description}</p>
+                            <p className="text-cinema-gold font-black text-sm mt-1">{combo.price.toLocaleString('vi-VN')} đ</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => changeComboQty(combo.id, -1)}
+                              disabled={qty === 0}
+                              className="w-7 h-7 rounded bg-[#333] hover:bg-[#444] disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold flex items-center justify-center text-lg leading-none transition-colors"
+                            >−</button>
+                            <span className="w-5 text-center text-white font-bold text-sm">{qty}</span>
+                            <button
+                              onClick={() => changeComboQty(combo.id, 1)}
+                              className="w-7 h-7 rounded bg-cinema-red hover:bg-red-700 text-white font-bold flex items-center justify-center text-lg leading-none transition-colors"
+                            >+</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {comboTotal > 0 && (
+                    <div className="mt-3 flex justify-between items-center text-sm border-t border-white/5 pt-3">
+                      <span className="text-gray-400">Tổng combo</span>
+                      <span className="text-cinema-gold font-bold">{comboTotal.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Payment method */}
-              <div className="px-5 py-4 border-b border-gray-100">
-                <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Phương thức thanh toán</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {PAYMENT_METHODS.map(pm => (
-                    <button
-                      key={pm.value}
-                      onClick={() => setPaymentMethod(pm.value)}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${
-                        paymentMethod === pm.value
-                          ? 'border-[#1a3a6c] bg-blue-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="text-xl shrink-0">{pm.icon}</span>
-                      <div>
-                        <p className={`text-sm font-bold leading-tight ${paymentMethod === pm.value ? 'text-[#1a3a6c]' : 'text-gray-700'}`}>{pm.label}</p>
-                        <p className="text-[10px] text-gray-400">{pm.desc}</p>
-                      </div>
-                    </button>
-                  ))}
+              <div className="px-6 py-5">
+                <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em] font-bold mb-4">Phương thức thanh toán</p>                <div className="grid grid-cols-2 gap-3">
+                  {PAYMENT_METHODS.map(pm => {
+                    const active = paymentMethod === pm.value;
+                    return (
+                      <button
+                        key={pm.value}
+                        onClick={() => setPaymentMethod(pm.value)}
+                        className={`flex flex-col items-start gap-3 p-4 rounded-xl border transition-all text-left relative overflow-hidden ${
+                          active
+                            ? 'border-cinema-red bg-cinema-red/10'
+                            : 'border-white/10 bg-[#181818] hover:border-white/30 hover:bg-[#222]'
+                        }`}
+                      >
+                        {/* Active Indicator Line */}
+                        {active && <div className="absolute top-0 left-0 w-full h-[2px] bg-cinema-red shadow-[0_0_8px_rgba(229,9,20,0.8)]"></div>}
+                        
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl bg-black/50 ${active ? 'ring-2 ring-cinema-red/50 ring-offset-2 ring-offset-transparent' : 'ring-1 ring-white/10'}`}>
+                          {pm.icon}
+                        </div>
+                        <div>
+                          <p className={`text-sm font-black leading-tight tracking-wide ${active ? 'text-white' : 'text-gray-300'}`}>{pm.label}</p>
+                          <p className={`text-[10px] mt-1 ${active ? 'text-gray-300' : 'text-gray-500'}`}>{pm.desc}</p>
+                        </div>
+                        {active && (
+                          <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-cinema-red flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             {/* Bottom: total + confirm button */}
-            <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0">
-              <div className="flex items-center justify-between mb-3.5">
-                <span className="text-gray-500 font-medium">Tổng thanh toán</span>
-                <span className="text-[#1a3a6c] font-black text-xl">{total.toLocaleString('vi-VN')} đ</span>
+            <div className="px-6 py-5 border-t border-white/10 bg-[#181818] shrink-0">
+              <div className="flex items-end justify-between mb-4">
+                <span className="text-gray-400 font-semibold text-sm">Tổng thanh toán</span>
+                <div className="text-right">
+                  <span className="text-cinema-red font-black text-2xl leading-none">{total.toLocaleString('vi-VN')}</span>
+                  <span className="text-gray-400 text-sm ml-1 font-bold">đ</span>
+                </div>
               </div>
               <button
                 onClick={handleBook}
                 disabled={booking}
-                className="w-full py-3.5 bg-cinema-red hover:bg-red-700 disabled:bg-gray-400 text-white font-black rounded-xl tracking-wide text-base transition-colors"
+                className="relative w-full py-4 bg-cinema-red hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-black rounded-xl tracking-[0.15em] text-base transition-all group overflow-hidden"
               >
-                {booking ? 'Đang xử lý...' : '🎬 XÁC NHẬN ĐẶT VÉ'}
+                {/* Glow effect */}
+                {!booking && <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-cinema-red opacity-0 group-hover:opacity-100 transition-opacity"></div>}
+                
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {booking ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ĐANG XỬ LÝ...
+                    </>
+                  ) : '🎬 XÁC NHẬN ĐẶT VÉ'}
+                </span>
               </button>
-              <p className="text-center text-xs text-gray-400 mt-2">
-                Bằng cách đặt vé, bạn đồng ý với điều khoản sử dụng của LLMCinema
+              <p className="text-center text-[10px] text-gray-500 mt-3 font-medium">
+                Bằng cách đặt vé, bạn đồng ý với <a href="#" className="underline hover:text-gray-300">điều khoản sử dụng</a> của LLMCinema
               </p>
             </div>
           </div>

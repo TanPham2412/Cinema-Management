@@ -18,6 +18,13 @@ const login = async (userData) => {
   return response.data
 }
 
+const getCurrentUser = async () => {
+  const response = await api.get('/users/me')
+  const user = response.data
+  localStorage.setItem('user', JSON.stringify(user))
+  return user
+}
+
 const logout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -26,6 +33,7 @@ const logout = () => {
 const authService = {
   register,
   login,
+  getCurrentUser,
   logout,
 }
 

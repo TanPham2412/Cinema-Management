@@ -56,7 +56,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 // Public GET endpoints
-                .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**", "/combos/**").permitAll()
                 // Public POST for login/register
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                 // VNPay endpoints - return, callback & IPN must be public

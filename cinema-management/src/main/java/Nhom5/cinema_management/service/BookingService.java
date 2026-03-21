@@ -14,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 import Nhom5.cinema_management.dto.BookingRequestDTO;
 import Nhom5.cinema_management.dto.BookingResponseDTO;
 import Nhom5.cinema_management.model.Booking;
+import Nhom5.cinema_management.model.BookingCombo;
 import Nhom5.cinema_management.model.BookingSeat;
+import Nhom5.cinema_management.model.Combo;
 import Nhom5.cinema_management.model.Payment;
 import Nhom5.cinema_management.model.Screening;
 import Nhom5.cinema_management.model.Seat;
 import Nhom5.cinema_management.model.User;
 import Nhom5.cinema_management.repository.BookingRepository;
+import Nhom5.cinema_management.repository.ComboRepository;
 import Nhom5.cinema_management.repository.PaymentRepository;
 import Nhom5.cinema_management.repository.ScreeningRepository;
 import Nhom5.cinema_management.repository.SeatRepository;
@@ -36,6 +39,7 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final ComboRepository comboRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final SeatHoldStore seatHoldStore;
 
@@ -84,13 +88,30 @@ public class BookingService {
             }
         }
 
-        // Calculate total amount
+        // Calculate total amount (seats)
         double total = seats.stream().mapToDouble(seat -> {
             double price = screening.getBasePrice();
             if (seat.getSeatType() == Seat.SeatType.VIP) price += 30000;
             else if (seat.getSeatType() == Seat.SeatType.COUPLE) price += 50000;
             return price;
         }).sum();
+
+        // Add combo prices to total
+        List<BookingCombo> bookingCombos = new ArrayList<>();
+        if (request.getCombos() != null) {
+            for (BookingRequestDTO.ComboItemRequest item : request.getCombos()) {
+                if (item.getQuantity() == null || item.getQuantity() <= 0) continue;
+                Combo combo = comboRepository.findById(item.getComboId())
+                        .orElseThrow(() -> new EntityNotFoundException("Combo not found: " + item.getComboId()));
+                if (!combo.getAvailable()) continue;
+                bookingCombos.add(BookingCombo.builder()
+                        .combo(combo)
+                        .quantity(item.getQuantity())
+                        .price(combo.getPrice())
+                        .build());
+                total += combo.getPrice() * item.getQuantity();
+            }
+        }
 
         int pointsUsed = request.getPointsUsed() == null ? 0 : request.getPointsUsed();
         if (pointsUsed > 0) {
@@ -138,6 +159,12 @@ public class BookingService {
         }
         savedBooking.setBookingSeats(bookingSeats);
 
+        // Attach combos to booking
+        for (BookingCombo bc : bookingCombos) {
+            bc.setBooking(savedBooking);
+        }
+        savedBooking.setBookingCombos(bookingCombos);
+
         // Create payment record (PENDING for gateway payments, COMPLETED for others)
         Payment payment = Payment.builder()
                 .booking(savedBooking)
@@ -153,7 +180,9 @@ public class BookingService {
         // For non-gateway payments, update user loyalty points immediately
         // For gateway payments, loyalty points are updated after confirmation
         if (!isGatewayPayment) {
-            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            int currentPoints = user.getLoyaltyPoints() != null ? user.getLoyaltyPoints() : 0;
+            int newPoints = currentPoints - pointsUsed + pointsEarned;
+            if (newPoints < 0) newPoints = 0; // Ensure points never go negative
             user.setLoyaltyPoints(newPoints);
             user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);
@@ -203,9 +232,15 @@ public class BookingService {
         screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
         screeningRepository.save(screening);
 
-        // Restore loyalty points used
+        // Restore loyalty points used and recalculate tier
         User user = booking.getUser();
-        user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
+        int currentPoints = user.getLoyaltyPoints() != null ? user.getLoyaltyPoints() : 0;
+        int pointsUsed = booking.getPointsUsed() != null ? booking.getPointsUsed() : 0;
+        int pointsEarned = booking.getPointsEarned() != null ? booking.getPointsEarned() : 0;
+        int newPoints = currentPoints + pointsUsed - pointsEarned;
+        if (newPoints < 0) newPoints = 0;
+        user.setLoyaltyPoints(newPoints);
+        user.setMembershipTier(calculateTier(newPoints));
         userRepository.save(user);
 
         BookingResponseDTO result = BookingResponseDTO.fromEntity(bookingRepository.save(booking));

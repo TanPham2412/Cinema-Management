@@ -80,6 +80,9 @@ const ScreeningManagement = () => {
         priceCategory: form.priceCategory,
       }
       await screeningService.createScreening(payload)
+      // Switch the filter date to the date of the newly added screening
+      setFilterDate(form.startTime.slice(0, 10))
+      setPage(0)
       await fetchAll()
       setShowModal(false); setForm(EMPTY_FORM)
     } catch (err) {

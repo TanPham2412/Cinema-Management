@@ -25,6 +25,7 @@ public class BookingResponseDTO {
     private Integer pointsUsed;
     private LocalDateTime bookingTime;
     private List<SeatInfo> seats;
+    private List<ComboInfo> combos;
 
     @Data
     public static class SeatInfo {
@@ -32,6 +33,14 @@ public class BookingResponseDTO {
         private String seatRow;
         private Integer seatNumber;
         private String seatType;
+        private Double price;
+    }
+
+    @Data
+    public static class ComboInfo {
+        private Long comboId;
+        private String comboName;
+        private Integer quantity;
         private Double price;
     }
 
@@ -64,6 +73,16 @@ public class BookingResponseDTO {
                 si.setSeatType(bs.getSeat().getSeatType().name());
                 si.setPrice(bs.getPrice());
                 return si;
+            }).collect(Collectors.toList()));
+        }
+        if (b.getBookingCombos() != null) {
+            dto.setCombos(b.getBookingCombos().stream().map(bc -> {
+                ComboInfo ci = new ComboInfo();
+                ci.setComboId(bc.getCombo().getId());
+                ci.setComboName(bc.getCombo().getName());
+                ci.setQuantity(bc.getQuantity());
+                ci.setPrice(bc.getPrice());
+                return ci;
             }).collect(Collectors.toList()));
         }
         return dto;

@@ -1,10 +1,18 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, ChevronLeft, Clock, Ticket, Users } from 'lucide-react';
+import { X, MapPin, Clock, Menu } from 'lucide-react';
 import cinemaService from '../services/cinemaService';
 import screeningService from '../services/screeningService';
 
 const DAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+const BRANDS = [
+  { id: 'all', name: 'Tất cả' },
+  { id: 'cgv', name: 'CGV' },
+  { id: 'lotte', name: 'Lotte' },
+  { id: 'galaxy', name: 'Galaxy' },
+  { id: 'beta', name: 'Beta' }
+];
 
 const fmtTime = (iso) => {
   const d = new Date(iso);
@@ -21,21 +29,18 @@ const ScreeningModal = ({
 }) => {
   const navigate = useNavigate();
 
-  // Step 1 state
-  const [cinemas, setCinemas]           = useState([]);
+  const [cinemas, setCinemas] = useState([]);
   const [loadingCinemas, setLoadingCinemas] = useState(true);
 
-  // Step 2 state
-  const [selectedCinema, setSelectedCinema] = useState(null);
-  const [screenings, setScreenings]         = useState([]);
-  const [loadingScreenings, setLoadingScreenings] = useState(false);
-  const [selectedDate, setSelectedDate]     = useState('');
-
-  // 7-day date list
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(Date.now() + i * 86400000);
     return d.toISOString().slice(0, 10);
   });
+
+  const [screenings, setScreenings] = useState([]);
+  const [loadingScreenings, setLoadingScreenings] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(dates[0]);
+  const [selectedBrand, setSelectedBrand] = useState('Tất cả');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -58,13 +63,13 @@ const ScreeningModal = ({
   }, []);
 
   useEffect(() => {
-    if (!selectedCinema) return;
+    if (!selectedDate) return;
     const load = async () => {
       setLoadingScreenings(true);
       try {
         const data = await screeningService.getScreeningsByMovie(movieId, selectedDate);
         const list = Array.isArray(data) ? data : (data.content || []);
-        setScreenings(list.filter(s => s.cinemaId === selectedCinema.id));
+        setScreenings(list);
       } catch {
         setScreenings([]);
       } finally {
@@ -72,13 +77,7 @@ const ScreeningModal = ({
       }
     };
     load();
-  }, [selectedCinema, selectedDate, movieId]);
-
-  const handleSelectCinema = (cinema) => {
-    setSelectedCinema(cinema);
-    setSelectedDate(dates[0]);
-    setScreenings([]);
-  };
+  }, [selectedDate, movieId]);
 
   const handleSelectScreening = (s) => {
     onClose();
@@ -99,32 +98,39 @@ const ScreeningModal = ({
     if (e.target === e.currentTarget) onClose();
   };
 
+  // Group screenings by cinema
+  const screeningsByCinema = {};
+  screenings.forEach(s => {
+    if (!screeningsByCinema[s.cinemaId]) screeningsByCinema[s.cinemaId] = [];
+    screeningsByCinema[s.cinemaId].push(s);
+  });
+
+  // Filter cinemas that have screenings AND match brand
+  const filteredCinemas = cinemas.filter(cinema => {
+    const hasScreenings = screeningsByCinema[cinema.id] && screeningsByCinema[cinema.id].length > 0;
+    if (!hasScreenings) return false;
+    if (selectedBrand !== 'Tất cả') {
+      return cinema.name.toLowerCase().includes(selectedBrand.toLowerCase());
+    }
+    return true;
+  });
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm"
       onClick={handleBackdrop}
     >
-      <div className="relative w-full max-w-2xl max-h-[92vh] sm:max-h-[86vh] flex flex-col bg-cinema-dark rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-2xl max-h-[92vh] sm:max-h-[86vh] flex flex-col bg-[#111111] sm:rounded-xl shadow-2xl overflow-hidden border border-white/5">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {selectedCinema && (
-              <button
-                onClick={() => { setSelectedCinema(null); setScreenings([]); }}
-                className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors shrink-0"
-              >
-                <ChevronLeft size={20} />
-              </button>
-            )}
-            <div className="min-w-0">
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">
-                {selectedCinema ? 'Chọn suất chiếu' : 'Chọn rạp'}
-              </p>
-              <h2 className="text-white font-black text-lg leading-tight truncate">
-                {selectedCinema ? selectedCinema.name : movieTitle}
-              </h2>
-            </div>
+        <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-white/5 shrink-0">
+          <div className="min-w-0">
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
+              LỊCH CHIẾU
+            </p>
+            <h2 className="text-white font-black text-xl leading-tight truncate uppercase mt-1">
+              {movieTitle}
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -134,139 +140,117 @@ const ScreeningModal = ({
           </button>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-0 px-5 pt-3 pb-2 shrink-0">
-          {['Phim', 'Rạp', 'Suất chiếu'].map((label, i) => {
-            const step = i; // 0=phim(done), 1=rap, 2=suat
-            const done    = step === 0 || (step === 1 && selectedCinema);
-            const active  = (step === 1 && !selectedCinema) || (step === 2 && selectedCinema);
+        {/* Date tabs */}
+        <div
+          className="flex gap-0 border-b border-white/5 shrink-0 overflow-x-auto"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {dates.map((date, idx) => {
+            const d      = new Date(date);
+            const day    = DAY_SHORT[d.getDay()];
+            const dd     = String(d.getDate()).padStart(2, '0');
+            const mm     = String(d.getMonth() + 1).padStart(2, '0');
+            const active = date === selectedDate;
             return (
-              <React.Fragment key={label}>
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                    done ? 'bg-cinema-red text-white'
-                    : active ? 'bg-cinema-red text-white'
-                    : 'bg-white/10 text-gray-500'
-                  }`}>
-                    {done && !active ? '✓' : i + 1}
-                  </div>
-                  <span className={`text-xs font-semibold ${active ? 'text-white' : done ? 'text-cinema-red' : 'text-gray-600'}`}>
-                    {label}
-                  </span>
-                </div>
-                {i < 2 && <div className={`flex-1 h-px mx-2 ${i === 0 ? 'bg-cinema-red' : 'bg-white/10'}`} />}
-              </React.Fragment>
+              <button
+                key={date}
+                onClick={() => setSelectedDate(date)}
+                className={`flex-shrink-0 flex flex-col items-center pt-3 pb-2.5 px-6 border-b-[3px] transition-colors ${
+                  active
+                    ? 'border-cinema-red text-cinema-red'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <span className={`text-[22px] font-black leading-none mb-1 ${active ? 'text-cinema-red' : 'text-white'}`}>
+                  {dd}
+                </span>
+                <span className="text-[11px] font-medium">
+                  /{mm} - {idx === 0 ? 'H.nay' : day}
+                </span>
+              </button>
             );
           })}
         </div>
 
-        {/* STEP 1: CINEMA LIST */}
-        {!selectedCinema && (
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-            {loadingCinemas ? (
-              <div className="space-y-3 pt-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="animate-pulse flex gap-4 p-4 bg-white/5 rounded-xl">
-                    <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-white/10 rounded w-3/4" />
-                      <div className="h-3 bg-white/10 rounded w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : cinemas.length === 0 ? (
-              <div className="text-center py-16 text-gray-500">
-                <p className="text-lg font-medium">Không tìm thấy rạp nào</p>
-              </div>
-            ) : (
-              cinemas.map(cinema => (
-                <button
-                  key={cinema.id}
-                  onClick={() => handleSelectCinema(cinema)}
-                  className="w-full text-left flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-cinema-red/10 border border-white/5 hover:border-cinema-red/40 transition-all group"
-                >
-                  {/* Icon */}
-                  <div className="w-12 h-12 rounded-lg bg-cinema-red/20 flex items-center justify-center shrink-0 group-hover:bg-cinema-red/30 transition-colors">
-                    <Ticket className="w-6 h-6 text-cinema-red" />
-                  </div>
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-bold text-sm truncate group-hover:text-cinema-red transition-colors">
-                      {cinema.name}
-                    </p>
-                    {cinema.address && (
-                      <p className="text-gray-500 text-xs mt-0.5 truncate flex items-center gap-1">
-                        <MapPin className="w-3 h-3 shrink-0" />
-                        {cinema.address}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronLeft className="w-4 h-4 text-gray-600 group-hover:text-cinema-red rotate-180 transition-all" />
-                </button>
-              ))
-            )}
-          </div>
-        )}
+        {/* Brand Filters */}
+        <div className="flex items-start gap-4 px-6 py-4 border-b border-white/5 shrink-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {BRANDS.map(brand => {
+            const active = selectedBrand === brand.name;
+            return (
+              <button
+                key={brand.id}
+                onClick={() => setSelectedBrand(brand.name)}
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[52px]"
+              >
+                <div className={`w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all ${
+                  brand.id === 'all' ? (active ? 'bg-yellow-400 border-yellow-400 font-bold' : 'bg-transparent border border-gray-600') : 
+                  brand.id === 'cgv' ? 'bg-[#E71A0F] text-white p-2 font-black' :
+                  brand.id === 'lotte' ? 'bg-[#ED1C24] text-white p-2 font-black italic' :
+                  brand.id === 'galaxy' ? 'bg-[#F26A21] text-white p-2 font-black italic' :
+                  'bg-[#00ADC6] text-white p-2 font-black italic'
+                } ${active && brand.id !== 'all' ? 'ring-[3px] ring-[#333] ring-offset-1 ring-offset-transparent' : ''}`}>
+                  {brand.id === 'all' ? (
+                    <Menu className={`w-5 h-5 ${active ? 'text-black' : 'text-gray-400 group-hover:text-white'}`} />
+                  ) : (
+                    <span className="text-[9px] leading-tight text-center">{brand.name}</span>
+                  )}
+                </div>
+                <span className={`text-[10px] font-medium transition-colors text-center ${active ? 'text-cinema-red' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                  {brand.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* STEP 2: SCREENINGS */}
-        {selectedCinema && (
-          <>
-            {/* Date tabs */}
-            <div
-              className="flex gap-0 border-b border-white/10 shrink-0 overflow-x-auto"
-              style={{ scrollbarWidth: 'none' }}
-            >
-              {dates.map((date, idx) => {
-                const d      = new Date(date);
-                const day    = DAY_SHORT[d.getDay()];
-                const dd     = String(d.getDate()).padStart(2, '0');
-                const mm     = String(d.getMonth() + 1).padStart(2, '0');
-                const active = date === selectedDate;
-                return (
-                  <button
-                    key={date}
-                    onClick={() => setSelectedDate(date)}
-                    className={`flex-shrink-0 flex flex-col items-center pt-3 pb-2.5 px-5 border-b-[3px] transition-colors ${
-                      active
-                        ? 'border-cinema-red text-cinema-red'
-                        : 'border-transparent text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    <span className={`text-2xl font-black leading-none ${active ? 'text-cinema-red' : 'text-white'}`}>
-                      {dd}
-                    </span>
-                    <span className="text-xs font-medium mt-0.5">
-                      /{mm} · {idx === 0 ? 'H.nay' : day}
-                    </span>
-                  </button>
-                );
-              })}
+        {/* Cinema & Screening slots */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {loadingCinemas || loadingScreenings ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-8 h-8 border-3 border-cinema-red border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-500 text-sm">Đang tải suất chiếu...</p>
             </div>
+          ) : filteredCinemas.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-base font-medium">Không có suất chiếu</p>
+              <p className="text-sm mt-1">Vui lòng chọn ngày hoặc rạp khác</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {filteredCinemas.map(cinema => {
+                const cinemaScreenings = screeningsByCinema[cinema.id].sort((a, b) => a.startTime.localeCompare(b.startTime));
+                
+                // Determine logo color based on brand roughly
+                let dotColor = 'text-[#E71A0F]';
+                if (cinema.name.toLowerCase().includes('lotte')) dotColor = 'text-[#ED1C24]';
+                else if (cinema.name.toLowerCase().includes('galaxy')) dotColor = 'text-[#F26A21]';
+                else if (cinema.name.toLowerCase().includes('beta')) dotColor = 'text-[#00ADC6]';
+                
+                return (
+                  <div key={cinema.id} className="border-b border-white/5 pb-8 last:border-0 last:pb-0">
+                    <div className="flex items-start gap-2.5 mb-3">
+                      <div className={`mt-1 flex-shrink-0 flex items-center justify-center border border-current rounded-full w-4 h-4 p-0.5 ${dotColor}`}>
+                         <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-white font-bold text-base leading-tight">
+                          {cinema.name}
+                        </h3>
+                        {cinema.address && (
+                          <p className="text-gray-500 text-xs mt-1">
+                            {cinema.address}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-gray-400 font-semibold tracking-wide uppercase mt-2.5">
+                          2D • PHỤ ĐỀ / LỒNG TIẾNG
+                        </p>
+                      </div>
+                    </div>
 
-            {/* Screening slots */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              {loadingScreenings ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <div className="w-8 h-8 border-3 border-cinema-red border-t-transparent rounded-full animate-spin" />
-                  <p className="text-gray-500 text-sm">Đang tải suất chiếu...</p>
-                </div>
-              ) : screenings.length === 0 ? (
-                <div className="text-center py-16 text-gray-500">
-                  <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-base font-medium">Không có suất chiếu</p>
-                  <p className="text-sm mt-1">Vui lòng chọn ngày khác</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-4 flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5" />
-                    {screenings.length} suất chiếu
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {screenings
-                      .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                      .map(s => {
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      {cinemaScreenings.map(s => {
                         const noSeats  = s.availableSeats === 0;
                         const seatWarn = !noSeats && s.availableSeats <= 20;
                         return (
@@ -274,36 +258,33 @@ const ScreeningModal = ({
                             key={s.id}
                             disabled={noSeats}
                             onClick={() => !noSeats && handleSelectScreening(s)}
-                            className={`flex flex-col items-center justify-center px-5 py-3 rounded-xl border-2 min-w-[88px] transition-all active:scale-95 ${
+                            className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-md transition-all min-w-[85px] border ${
                               noSeats
-                                ? 'border-white/5 bg-white/5 text-gray-600 cursor-not-allowed'
-                                : 'border-white/10 bg-white/5 hover:border-cinema-red hover:bg-cinema-red/10 text-white'
+                                ? 'bg-[#222] border-transparent text-gray-600 cursor-not-allowed hidden' // Usually hide sold-out or dim, will just dim for now
+                                : 'bg-[#222] border-transparent hover:border-gray-500 text-white'
                             }`}
+                            style={{ display: noSeats ? 'none' : 'flex' }} // Optional: hiding sold out ones or keeping them dimmed. I will dim them just in case.
                           >
-                            <span className="text-xl font-black leading-none">
+                            <span className="text-lg font-bold leading-none mb-1 text-gray-100">
                               {fmtTime(s.startTime)}
                             </span>
-                            <span className={`text-[10px] mt-1 font-semibold ${
+                            <span className={`text-[10px] font-medium ${
                               noSeats ? 'text-red-500/60'
                               : seatWarn ? 'text-yellow-400'
-                              : 'text-gray-500'
+                              : 'text-gray-400'
                             }`}>
-                              {noSeats ? 'Hết vé' : `${s.availableSeats} ghế`}
+                              {noSeats ? 'Hết vé' : `${s.availableSeats} ghế trống`}
                             </span>
-                            {!noSeats && s.basePrice && (
-                              <span className="text-[10px] text-cinema-red font-bold mt-0.5">
-                                {fmtPrice(s.basePrice)}
-                              </span>
-                            )}
                           </button>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

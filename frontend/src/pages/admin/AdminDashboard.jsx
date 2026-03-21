@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Film, Tag, Building2, Calendar, Users, Ticket, DollarSign, Settings } from 'lucide-react'
+import { Film, Tag, Building2, Calendar, Users, Ticket, DollarSign, Settings, ShoppingBag } from 'lucide-react'
 
 const AdminDashboard = () => {
   const menuItems = [
@@ -65,6 +65,15 @@ const AdminDashboard = () => {
       color: 'from-emerald-500 to-emerald-600',
       iconBg: 'bg-emerald-500/20',
       iconColor: 'text-emerald-400'
+    },
+    {
+      title: 'Quản lý Combo',
+      description: 'Thêm, sửa combo bắp nước',
+      icon: ShoppingBag,
+      link: '/admin/combos',
+      color: 'from-pink-500 to-pink-600',
+      iconBg: 'bg-pink-500/20',
+      iconColor: 'text-pink-400'
     },
     {
       title: 'Cài đặt',

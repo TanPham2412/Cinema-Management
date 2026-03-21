@@ -170,7 +170,8 @@ public class VNPayService {
             User user = booking.getUser();
             int pointsUsed = booking.getPointsUsed() != null ? booking.getPointsUsed() : 0;
             int pointsEarned = booking.getPointsEarned() != null ? booking.getPointsEarned() : 0;
-            int newPoints = user.getLoyaltyPoints() - pointsUsed + pointsEarned;
+            int currentPoints = user.getLoyaltyPoints() != null ? user.getLoyaltyPoints() : 0;
+            int newPoints = Math.max(0, currentPoints - pointsUsed + pointsEarned);
             user.setLoyaltyPoints(newPoints);
             user.setMembershipTier(calculateTier(newPoints));
             userRepository.save(user);

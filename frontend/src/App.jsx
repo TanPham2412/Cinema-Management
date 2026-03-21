@@ -19,6 +19,7 @@ import ScreeningManagement from './pages/admin/ScreeningManagement'
 import UserManagement from './pages/admin/UserManagement'
 import BookingManagement from './pages/admin/BookingManagement'
 import RevenueManagement from './pages/admin/RevenueManagement'
+import ComboManagement from './pages/admin/ComboManagement'
 import StaffDashboard from './pages/staff/StaffDashboard'
 import ScreeningSelectionPage from './pages/ScreeningSelectionPage'
 import CinemasPage from './pages/CinemasPage'
@@ -118,6 +119,14 @@ function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <RevenueManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/combos"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <ComboManagement />
               </ProtectedRoute>
             }
           />

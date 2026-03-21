@@ -8,7 +8,13 @@ import lombok.Data;
 public class BookingRequestDTO {
     private Long screeningId;
     private List<Long> seatIds;
-    private List<Long> combos;
+    private List<ComboItemRequest> combos;
     private String paymentMethod;
     private Integer pointsUsed;
+
+    @Data
+    public static class ComboItemRequest {
+        private Long comboId;
+        private Integer quantity;
+    }
 }

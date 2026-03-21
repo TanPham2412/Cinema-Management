@@ -39,3 +39,11 @@ INSERT INTO movie_genres (movie_id, genre_id) VALUES (4, 2), (4, 4);
 
 -- Deadpool 3: Hành động, Hài
 INSERT INTO movie_genres (movie_id, genre_id) VALUES (5, 1), (5, 4);
+
+-- Sample combos
+INSERT INTO combos (name, description, price, image_url, available) VALUES
+('Combo Bắp + Nước', 'TIẾT KIỆM 28K!!! Gồm: 1 Bắp (69oz) + 1 Nước có gas (22oz)', 79000, NULL, true),
+('Combo 2 Bắp + 2 Nước', 'TIẾT KIỆM 56K!!! Sở hữu ngay: 2 Bắp (69oz) + 2 Nước có gas (22oz)', 149000, NULL, true),
+('Combo Gia Đình', 'SIÊU TIẾT KIỆM!!! Gồm: 2 Bắp (L) + 2 Nước có gas + 1 Snack', 219000, NULL, true),
+('Combo Đôi Lãng Mạn', 'Dành cho 2 người: 2 Bắp bơ (M) + 2 Nước ép trái cây', 179000, NULL, true);
+
