@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout } from '../redux/slices/authSlice'
-import { User, Mail, Phone, Star, Award, Ticket, LogOut, Crown, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { User, Mail, Phone, Star, Award, Ticket, LogOut, Crown, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, Copy } from 'lucide-react'
 import bookingService from '../services/bookingService'
 
 const tierConfig = {
@@ -27,10 +27,19 @@ const ProfilePage = () => {
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loadingBookings, setLoadingBookings] = useState(true)
+  const [selectedBooking, setSelectedBooking] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const handleLogout = () => {
     dispatch(logout())
     navigate('/')
+  }
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   useEffect(() => {
@@ -50,6 +59,7 @@ const ProfilePage = () => {
     : 100
 
   return (
+    <>
     <div className="min-h-screen bg-cinema-darker py-10">
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-3xl font-bold text-white mb-8">Trang cá nhân</h1>
@@ -155,7 +165,7 @@ const ProfilePage = () => {
                     const StatusIcon = st.icon
                     const seatLabel = b.seats?.map(s => `${s.seatRow}${s.seatNumber}`).join(', ') || '—'
                     return (
-                      <div key={b.id} className="bg-cinema-darker rounded-xl p-4 border border-cinema-gray-light hover:border-cinema-red/40 transition-colors">
+                      <div key={b.id} onClick={() => setSelectedBooking(b)} className="bg-cinema-darker rounded-xl p-4 border border-cinema-gray-light hover:border-cinema-red/40 transition-colors cursor-pointer">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -189,6 +199,88 @@ const ProfilePage = () => {
         </div>
       </div>
     </div>
+
+    {/* Booking Detail Modal */}
+    {selectedBooking && (() => {
+      const b = selectedBooking
+      const st = statusConfig[b.status] || statusConfig.PENDING
+      const StatusIcon = st.icon
+      const seatLabel = b.seats?.map(s => `${s.seatRow}${s.seatNumber}`).join(', ') || '—'
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedBooking(null)}>
+          <div className="bg-cinema-gray rounded-2xl w-full max-w-md border border-cinema-gray-light shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-cinema-gray-light">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-cinema-red" /> Chi tiết vé
+              </h3>
+              <button onClick={() => setSelectedBooking(null)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Movie title */}
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Phim</p>
+                <p className="text-white font-bold text-lg">{b.movieTitle}</p>
+              </div>
+
+              {/* Booking code - prominent */}
+              <div className="bg-cinema-darker rounded-xl p-4 border border-cinema-gold/30 text-center">
+                <p className="text-gray-400 text-xs mb-2">Mã vé (đưa cho nhân viên soát)</p>
+                <p className="text-cinema-gold font-mono font-bold text-xl tracking-wider">{b.bookingCode}</p>
+                <button
+                  onClick={() => handleCopyCode(b.bookingCode)}
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  <Copy className="w-3 h-3" />
+                  {copied ? 'Đã sao chép!' : 'Sao chép mã'}
+                </button>
+              </div>
+
+              {/* Details grid */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-500 text-xs">Rạp</p>
+                  <p className="text-gray-200">{b.cinemaName}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Phòng chiếu</p>
+                  <p className="text-gray-200">{b.screenName}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Ngày chiếu</p>
+                  <p className="text-gray-200">{b.date}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Giờ chiếu</p>
+                  <p className="text-gray-200">{b.time}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-gray-500 text-xs">Ghế ngồi</p>
+                  <p className="text-gray-200">{seatLabel}</p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-3 border-t border-cinema-gray-light">
+                <span className={`inline-flex items-center gap-1 text-sm font-medium ${st.color}`}>
+                  <StatusIcon className="w-4 h-4" /> {st.label}
+                </span>
+                <div className="text-right">
+                  <p className="text-cinema-gold font-bold text-lg">{b.totalAmount?.toLocaleString('vi-VN')}đ</p>
+                  {b.pointsEarned > 0 && (
+                    <p className="text-yellow-500 text-xs">+{b.pointsEarned} điểm tích lũy</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+    </>
   )
 }
 

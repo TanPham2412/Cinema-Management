@@ -3,6 +3,7 @@ package Nhom5.cinema_management.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -46,6 +47,12 @@ public class BookingController {
             @PathVariable String code,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(bookingService.getBookingByCode(code));
+    }
+
+    @PostMapping("/{code}/check-in")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    public ResponseEntity<BookingResponseDTO> checkIn(@PathVariable String code) {
+        return ResponseEntity.ok(bookingService.checkIn(code));
     }
 
     @PutMapping("/{id}/cancel")

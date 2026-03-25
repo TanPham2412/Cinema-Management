@@ -170,9 +170,28 @@ public class BookingService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
         return bookingRepository.findByUserId(user.getId()).stream()
-                .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED)
+                .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED
+                          || b.getStatus() == Booking.BookingStatus.COMPLETED)
                 .map(BookingResponseDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public BookingResponseDTO checkIn(String bookingCode) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy vé: " + bookingCode));
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED
+                || booking.getStatus() == Booking.BookingStatus.EXPIRED) {
+            throw new IllegalStateException("Vé đã bị hủy hoặc hết hạn");
+        }
+        if (booking.getStatus() == Booking.BookingStatus.COMPLETED) {
+            throw new IllegalStateException("Vé này đã được soát rồi");
+        }
+        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+            throw new IllegalStateException("Vé chưa được thanh toán");
+        }
+        booking.setStatus(Booking.BookingStatus.COMPLETED);
+        return BookingResponseDTO.fromEntity(bookingRepository.save(booking));
     }
 
     public BookingResponseDTO getBookingByCode(String code) {
