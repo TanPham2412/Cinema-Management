@@ -1,10 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { Tag, Clock, Building2, Calendar, Film, X, ChevronLeft } from 'lucide-react'
+import { Tag, Clock, Building2, Calendar, Film, X, ChevronLeft, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react'
 import bookingService from '../services/bookingService'
 import api from '../services/api'
 import websocketService from '../services/websocketService'
+
+// ── Tier food discount config ───────────────────────────────────────────────
+const TIER_FOOD = {
+  BRONZE:   { discount: 0,    label: null },
+  SILVER:   { discount: 0.05, label: '🥈 Bạn được giảm 5% đồ ăn & nước uống' },
+  GOLD:     { discount: 0.10, label: '🥇 Bạn được giảm 10% + miễn phí 1 lần nâng size' },
+  PLATINUM: { discount: 0.15, label: '💎 Giảm 15% + Tặng 1 Nước suối miễn phí' },
+  DIAMOND:  { discount: 0.20, label: '👑 Giảm 20% + Tặng 1 Combo 1 người miễn phí' },
+}
+
+const CATEGORY_TAB = [
+  { key: 'COMBO',   label: '🎁 Combo' },
+  { key: 'POPCORN', label: '🍿 Bắp' },
+  { key: 'DRINK',   label: '🥤 Nước' },
+]
 
 const PAYMENT_METHODS = [
   { value: 'VNPAY', label: 'VNPay', icon: '💳', desc: 'Thanh toán qua VNPay' },
@@ -103,7 +118,33 @@ const BookingPage = () => {
   const [vnpayBookingId, setVnpayBookingId] = useState(null)
   const [vnpayPaymentUrl, setVnpayPaymentUrl] = useState(null)
 
+  // ── Food & drink state ──────────────────────────────────────────────────────
+  const [foodItems, setFoodItems] = useState([])       // loaded from API
+  const [selectedFood, setSelectedFood] = useState({}) // { id: qty }
+  const [foodCategory, setFoodCategory] = useState('COMBO')
+  const [foodExpanded, setFoodExpanded] = useState(true)
+
   useEffect(() => { selectedSeatsRef.current = selectedSeats }, [selectedSeats])
+
+  // ── Load food items from backend ─────────────────────────────────────────────
+  useEffect(() => {
+    api.get('/combos').then(res => {
+      const items = res.data || []
+      setFoodItems(items)
+      // Auto-add free gifts based on tier
+      const tier = user?.membershipTier || 'BRONZE'
+      const gifts = {}
+      if (tier === 'PLATINUM') {
+        const water = items.find(i => i.name === 'Nước suối')
+        if (water) gifts[water.id] = (gifts[water.id] || 0) + 1
+      }
+      if (tier === 'DIAMOND') {
+        const combo1 = items.find(i => i.name === 'Combo 1 người')
+        if (combo1) gifts[combo1.id] = (gifts[combo1.id] || 0) + 1
+      }
+      if (Object.keys(gifts).length) setSelectedFood(gifts)
+    }).catch(() => {})
+  }, []) // eslint-disable-line
 
   const handleMomoTestConfirm = async () => {
     setMomoConfirming(true)
@@ -273,7 +314,34 @@ const BookingPage = () => {
   const seatPrice = (seat) =>
     (screeningInfo?.basePrice || 90000) + (SEAT_TYPES[seat.seatType]?.price || 0)
 
-  const total = selectedSeats.reduce((sum, s) => sum + seatPrice(s), 0)
+  // Food helpers
+  const tierFoodConfig = TIER_FOOD[user?.membershipTier] || TIER_FOOD.BRONZE
+  const discountedFoodPrice = (price) => Math.round(price * (1 - tierFoodConfig.discount))
+
+  const foodTotal = foodItems.reduce((sum, item) => {
+    const qty = selectedFood[item.id] || 0
+    if (!qty) return sum
+    // Free items: water for PLATINUM, Combo 1 for DIAMOND
+    const isFreeWater  = user?.membershipTier === 'PLATINUM' && item.name === 'Nước suối'
+    const isFreeCombo1 = user?.membershipTier === 'DIAMOND' && item.name === 'Combo 1 người'
+    const unitPrice = (isFreeWater || isFreeCombo1) ? 0 : discountedFoodPrice(item.price)
+    return sum + unitPrice * qty
+  }, 0)
+
+  const grandTotal = selectedSeats.reduce((sum, s) => sum + seatPrice(s), 0) + foodTotal
+
+  const adjustFood = (itemId, delta) => {
+    setSelectedFood(prev => {
+      const cur = prev[itemId] || 0
+      const next = Math.max(0, Math.min(10, cur + delta))
+      if (next === 0) { const n = { ...prev }; delete n[itemId]; return n }
+      return { ...prev, [itemId]: next }
+    })
+  }
+
+  const foodOrderList = foodItems
+    .filter(i => (selectedFood[i.id] || 0) > 0)
+    .map(i => ({ ...i, qty: selectedFood[i.id] }))
 
   const seatsByRow = seats.reduce((acc, seat) => {
     if (!acc[seat.seatRow]) acc[seat.seatRow] = []
@@ -298,7 +366,7 @@ const BookingPage = () => {
       const result = await bookingService.createBooking({
         screeningId: parseInt(screeningId),
         seatIds: selectedSeats.map((s) => s.id),
-        combos: [],
+        combos: Object.entries(selectedFood).map(([id, quantity]) => ({ id: parseInt(id), quantity })),
         paymentMethod,
       })
 
@@ -574,6 +642,153 @@ const BookingPage = () => {
         </div>
       </div>
 
+      {/* ─── Food & Drink section ─── */}
+      {foodItems.length > 0 && (
+        <div className="max-w-5xl mx-auto px-4 pb-6 mt-4">
+          <div className="bg-cinema-gray rounded-lg border border-cinema-gray-light overflow-hidden">
+            {/* Header */}
+            <button
+              onClick={() => setFoodExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🍿</span>
+                <div className="text-left">
+                  <p className="font-bold text-white text-sm">Đồ ăn & nước uống</p>
+                  <p className="text-gray-400 text-xs">Nhận tại quầy khi đến rạp</p>
+                </div>
+                {foodOrderList.length > 0 && (
+                  <span className="ml-2 bg-cinema-red text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {foodOrderList.reduce((s, i) => s + i.qty, 0)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {tierFoodConfig.label && (
+                  <span className="hidden sm:block text-xs font-semibold text-cinema-gold bg-cinema-gold/10 border border-cinema-gold/30 px-3 py-1 rounded-full">
+                    {tierFoodConfig.label}
+                  </span>
+                )}
+                {foodExpanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+              </div>
+            </button>
+
+            {foodExpanded && (
+              <div className="border-t border-cinema-gray-light">
+                {tierFoodConfig.label && (
+                  <div className="sm:hidden px-4 py-2 bg-cinema-gold/10 border-b border-cinema-gold/20">
+                    <p className="text-cinema-gold text-xs font-semibold text-center">{tierFoodConfig.label}</p>
+                  </div>
+                )}
+
+                {/* Category tabs */}
+                <div className="flex border-b border-cinema-gray-light">
+                  {CATEGORY_TAB.map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setFoodCategory(tab.key)}
+                      className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                        foodCategory === tab.key
+                          ? 'text-cinema-gold border-b-2 border-cinema-gold bg-cinema-gold/5'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Items grid */}
+                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {foodItems.filter(i => i.category === foodCategory).map(item => {
+                    const qty = selectedFood[item.id] || 0
+                    const isFreeWater  = user?.membershipTier === 'PLATINUM' && item.name === 'Nước suối'
+                    const isFreeCombo1 = user?.membershipTier === 'DIAMOND'  && item.name === 'Combo 1 người'
+                    const isFree = isFreeWater || isFreeCombo1
+                    const showDiscounted = tierFoodConfig.discount > 0 && !isFree
+                    const finalPrice = isFree ? 0 : discountedFoodPrice(item.price)
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`relative rounded-xl border p-3 flex flex-col gap-2 transition-all ${
+                          qty > 0
+                            ? 'border-cinema-gold bg-cinema-gold/5 shadow-[0_0_12px_rgba(var(--cinema-gold-rgb),0.15)]'
+                            : 'border-cinema-gray-light bg-cinema-darker hover:border-gray-500'
+                        }`}
+                      >
+                        {isFree && (
+                          <span className="absolute top-2 right-2 text-[9px] font-black bg-green-500 text-white px-1.5 py-0.5 rounded-full">
+                            MIỄN PHÍ
+                          </span>
+                        )}
+                        <div>
+                          <p className="text-white text-xs font-bold leading-tight pr-10">{item.name}</p>
+                          <p className="text-gray-500 text-[10px] leading-tight mt-0.5 line-clamp-2">{item.description}</p>
+                        </div>
+                        <div className="flex items-end justify-between gap-1 mt-auto">
+                          <div>
+                            {isFree ? (
+                              <p className="text-green-400 font-black text-sm">Miễn phí 🎁</p>
+                            ) : (
+                              <>
+                                {showDiscounted && (
+                                  <p className="text-gray-500 line-through text-[10px]">
+                                    {item.price.toLocaleString('vi-VN')}đ
+                                  </p>
+                                )}
+                                <p className="text-cinema-gold font-black text-sm">
+                                  {finalPrice.toLocaleString('vi-VN')}đ
+                                </p>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => adjustFood(item.id, -1)}
+                              disabled={qty === 0}
+                              className="w-7 h-7 rounded-lg bg-cinema-gray-light hover:bg-gray-600 disabled:opacity-30 flex items-center justify-center transition-colors"
+                            >
+                              <Minus size={12} className="text-white" />
+                            </button>
+                            <span className="w-6 text-center text-white font-bold text-sm">{qty}</span>
+                            <button
+                              onClick={() => adjustFood(item.id, 1)}
+                              className="w-7 h-7 rounded-lg bg-cinema-red hover:bg-red-700 flex items-center justify-center transition-colors"
+                            >
+                              <Plus size={12} className="text-white" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Food subtotal */}
+                {foodOrderList.length > 0 && (
+                  <div className="mx-4 mb-4 px-4 py-3 bg-cinema-darker rounded-xl border border-cinema-gold/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300 text-sm font-semibold">Tổng đồ ăn</span>
+                      <span className="text-cinema-gold font-bold text-base">
+                        {foodTotal > 0 ? foodTotal.toLocaleString('vi-VN') + 'đ' : 'Miễn phí 🎁'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {foodOrderList.map(i => (
+                        <span key={i.id} className="text-xs bg-cinema-gray-light text-gray-300 px-2 py-0.5 rounded-full">
+                          {i.name} ×{i.qty}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ─── Fixed bottom bar ─── */}
       <div className="fixed bottom-0 inset-x-0 bg-cinema-gray border-t border-cinema-gray-light shadow-[0_-4px_20px_rgba(0,0,0,0.4)] z-40">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-6">
@@ -588,7 +803,7 @@ const BookingPage = () => {
           <div className="px-6 border-x border-cinema-gray-light text-center shrink-0">
             <p className="text-xs text-gray-400 mb-0.5">Tổng tiền</p>
             <p className="font-black text-cinema-gold text-sm">
-              {total > 0 ? total.toLocaleString('vi-VN') + ' vnđ' : '0 vnđ'}
+              {grandTotal > 0 ? grandTotal.toLocaleString('vi-VN') + ' vnđ' : '0 vnđ'}
             </p>
           </div>
 
@@ -671,6 +886,34 @@ const BookingPage = () => {
                 </div>
               </div>
 
+              {/* Food/drink summary in checkout */}
+              {foodOrderList.length > 0 && (
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Đồ ăn & nước uống</p>
+                  <div className="space-y-1.5">
+                    {foodOrderList.map(item => {
+                      const isFreeWater  = user?.membershipTier === 'PLATINUM' && item.name === 'Nước suối'
+                      const isFreeCombo1 = user?.membershipTier === 'DIAMOND'  && item.name === 'Combo 1 người'
+                      const isFree = isFreeWater || isFreeCombo1
+                      const unitPrice = isFree ? 0 : discountedFoodPrice(item.price)
+                      return (
+                        <div key={item.id} className="flex justify-between text-sm">
+                          <span className="text-gray-600">{item.name} ×{item.qty}
+                            {isFree && <span className="ml-1 text-green-600 text-xs font-bold">🎁</span>}
+                          </span>
+                          <span className="font-semibold text-gray-800">
+                            {isFree ? 'Miễn phí' : (unitPrice * item.qty).toLocaleString('vi-VN') + ' đ'}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {tierFoodConfig.discount > 0 && (
+                    <p className="text-xs text-green-600 mt-2 font-semibold">✓ Đã áp dụng ưu đãi hạng thành viên</p>
+                  )}
+                </div>
+              )}
+
               {/* Payment method */}
               <div className="px-5 py-4 border-b border-gray-100">
                 <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-3">Phương thức thanh toán</p>
@@ -700,7 +943,7 @@ const BookingPage = () => {
             <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0">
               <div className="flex items-center justify-between mb-3.5">
                 <span className="text-gray-500 font-medium">Tổng thanh toán</span>
-                <span className="text-[#1a3a6c] font-black text-xl">{total.toLocaleString('vi-VN')} đ</span>
+                <span className="text-[#1a3a6c] font-black text-xl">{grandTotal.toLocaleString('vi-VN')} đ</span>
               </div>
               <button
                 onClick={handleBook}

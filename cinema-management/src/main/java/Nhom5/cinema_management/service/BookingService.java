@@ -14,12 +14,16 @@ import org.springframework.transaction.annotation.Transactional;
 import Nhom5.cinema_management.dto.BookingRequestDTO;
 import Nhom5.cinema_management.dto.BookingResponseDTO;
 import Nhom5.cinema_management.model.Booking;
+import Nhom5.cinema_management.model.BookingCombo;
 import Nhom5.cinema_management.model.BookingSeat;
+import Nhom5.cinema_management.model.Combo;
 import Nhom5.cinema_management.model.Payment;
 import Nhom5.cinema_management.model.Screening;
 import Nhom5.cinema_management.model.Seat;
 import Nhom5.cinema_management.model.User;
+import Nhom5.cinema_management.repository.BookingComboRepository;
 import Nhom5.cinema_management.repository.BookingRepository;
+import Nhom5.cinema_management.repository.ComboRepository;
 import Nhom5.cinema_management.repository.PaymentRepository;
 import Nhom5.cinema_management.repository.ScreeningRepository;
 import Nhom5.cinema_management.repository.SeatRepository;
@@ -38,6 +42,8 @@ public class BookingService {
     private final PaymentRepository paymentRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final SeatHoldStore seatHoldStore;
+    private final ComboRepository comboRepository;
+    private final BookingComboRepository bookingComboRepository;
 
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request, String userEmail) {
@@ -101,6 +107,40 @@ public class BookingService {
             if (total < 0) total = 0;
         }
 
+        // Process food & drink combos with membership tier discount
+        double foodDiscount = getFoodDiscount(user.getMembershipTier());
+        double comboTotal = 0;
+        List<BookingCombo> pendingCombos = new ArrayList<>();
+
+        if (request.getCombos() != null) {
+            boolean platinumWaterGranted = false;
+            boolean diamondComboGranted = false;
+            for (BookingRequestDTO.ComboOrderItem item : request.getCombos()) {
+                if (item.getId() == null || item.getQuantity() == null || item.getQuantity() <= 0) continue;
+                Combo combo = comboRepository.findById(item.getId())
+                        .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Combo not found: " + item.getId()));
+                double unitPrice = combo.getPrice() * (1.0 - foodDiscount);
+                // PLATINUM: first Nước suối is free
+                if (user.getMembershipTier() == User.MembershipTier.PLATINUM
+                        && !platinumWaterGranted && combo.getName().contains("Nước suối")) {
+                    unitPrice = 0;
+                    platinumWaterGranted = true;
+                }
+                // DIAMOND: first Combo 1 người is free
+                if (user.getMembershipTier() == User.MembershipTier.DIAMOND
+                        && !diamondComboGranted && combo.getName().contains("Combo 1")) {
+                    unitPrice = 0;
+                    diamondComboGranted = true;
+                }
+                comboTotal += unitPrice * item.getQuantity();
+                final double finalUnitPrice = unitPrice;
+                // Store temporarily — will link to savedBooking after it is persisted
+                pendingCombos.add(BookingCombo.builder()
+                        .combo(combo).quantity(item.getQuantity()).price(finalUnitPrice).build());
+            }
+        }
+        total += comboTotal;
+
         int pointsEarned = (int) (total / 10000); // 1 point per 10,000đ
 
         // Gateway payments (VNPay, MoMo) stay PENDING until IPN/notify confirms
@@ -137,6 +177,15 @@ public class BookingService {
             bookingSeats.add(bs);
         }
         savedBooking.setBookingSeats(bookingSeats);
+
+        // Link BookingCombo records to the saved booking
+        if (!pendingCombos.isEmpty()) {
+            List<BookingCombo> bookingCombos = pendingCombos.stream().map(bc -> {
+                bc.setBooking(savedBooking);
+                return bc;
+            }).toList();
+            bookingComboRepository.saveAll(bookingCombos);
+        }
 
         // Create payment record (PENDING for gateway payments, COMPLETED for others)
         Payment payment = Payment.builder()
@@ -296,6 +345,18 @@ public class BookingService {
         if (points >= 1000)  return User.MembershipTier.GOLD;
         if (points >= 300)   return User.MembershipTier.SILVER;
         return User.MembershipTier.BRONZE;
+    }
+
+    /** Food/drink discount rate by membership tier */
+    private double getFoodDiscount(User.MembershipTier tier) {
+        if (tier == null) return 0;
+        return switch (tier) {
+            case SILVER   -> 0.05;
+            case GOLD     -> 0.10;
+            case PLATINUM -> 0.15;
+            case DIAMOND  -> 0.20;
+            default       -> 0;
+        };
     }
 
     private String generateBookingCode() {

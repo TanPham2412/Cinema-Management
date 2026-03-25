@@ -1,11 +1,15 @@
 package Nhom5.cinema_management.config;
 
+import java.util.List;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import Nhom5.cinema_management.model.Combo;
 import Nhom5.cinema_management.model.User;
+import Nhom5.cinema_management.repository.ComboRepository;
 import Nhom5.cinema_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +21,13 @@ public class DataInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ComboRepository comboRepository;
 
     @Override
     public void run(ApplicationArguments args) {
         createDefaultUser("admin@cinema.com", "Admin@123", "Admin", User.Role.ADMIN);
         createDefaultUser("staff@cinema.com", "Staff@123", "Staff", User.Role.STAFF);
+        seedCombos();
     }
 
     private void createDefaultUser(String email, String password, String fullName, User.Role role) {
@@ -40,4 +46,50 @@ public class DataInitializer implements ApplicationRunner {
         userRepository.save(user);
         log.info("Created default {} account: {}", role, email);
     }
+
+    private void seedCombos() {
+        if (comboRepository.count() > 0) return;
+
+        List<Combo> items = List.of(
+            // ── COMBO ──────────────────────────────────────────────────────────
+            Combo.builder().name("Combo 1 người").category("COMBO")
+                .description("1 Bắp ngọt Size M + 1 Nước ngọt Size M").price(65000.0).available(true).build(),
+            Combo.builder().name("Combo 2 người").category("COMBO")
+                .description("1 Bắp ngọt Size L + 2 Nước ngọt Size M").price(90000.0).available(true).build(),
+
+            // ── BẮP ────────────────────────────────────────────────────────────
+            Combo.builder().name("Bắp ngọt Size M").category("POPCORN")
+                .description("Bắp rang bơ vị ngọt cỡ vừa").price(45000.0).available(true).build(),
+            Combo.builder().name("Bắp ngọt Size L").category("POPCORN")
+                .description("Bắp rang bơ vị ngọt cỡ lớn").price(55000.0).available(true).build(),
+            Combo.builder().name("Bắp mặn Size M").category("POPCORN")
+                .description("Bắp rang bơ vị mặn cỡ vừa").price(45000.0).available(true).build(),
+            Combo.builder().name("Bắp mặn Size L").category("POPCORN")
+                .description("Bắp rang bơ vị mặn cỡ lớn").price(55000.0).available(true).build(),
+            Combo.builder().name("Bắp phô mai Size M").category("POPCORN")
+                .description("Bắp rang phủ phô mai đặc biệt cỡ vừa").price(55000.0).available(true).build(),
+            Combo.builder().name("Bắp phô mai Size L").category("POPCORN")
+                .description("Bắp rang phủ phô mai đặc biệt cỡ lớn").price(65000.0).available(true).build(),
+
+            // ── NƯỚC ───────────────────────────────────────────────────────────
+            Combo.builder().name("Pepsi Size M").category("DRINK")
+                .description("Nước ngọt có ga Pepsi cỡ vừa (400ml)").price(25000.0).available(true).build(),
+            Combo.builder().name("Pepsi Size L").category("DRINK")
+                .description("Nước ngọt có ga Pepsi cỡ lớn (600ml)").price(35000.0).available(true).build(),
+            Combo.builder().name("7Up Size M").category("DRINK")
+                .description("Nước chanh có ga 7Up cỡ vừa (400ml)").price(25000.0).available(true).build(),
+            Combo.builder().name("7Up Size L").category("DRINK")
+                .description("Nước chanh có ga 7Up cỡ lớn (600ml)").price(35000.0).available(true).build(),
+            Combo.builder().name("Mirinda Size M").category("DRINK")
+                .description("Nước cam có ga Mirinda cỡ vừa (400ml)").price(25000.0).available(true).build(),
+            Combo.builder().name("Mirinda Size L").category("DRINK")
+                .description("Nước cam có ga Mirinda cỡ lớn (600ml)").price(35000.0).available(true).build(),
+            Combo.builder().name("Nước suối").category("DRINK")
+                .description("Nước khoáng tinh khiết (500ml)").price(15000.0).available(true).build()
+        );
+
+        comboRepository.saveAll(items);
+        log.info("✅ Seeded {} food/drink items", items.size());
+    }
 }
+
