@@ -28,7 +28,7 @@ public class VNPayController {
     private final VNPayService vnPayService;
 
     // Frontend base URL for redirects
-    private static final String FRONTEND_URL = "http://localhost:3000";
+    private static final String FRONTEND_URL = "https://plvcinema.xyz";
 
     /**
      * Create VNPay payment URL for an existing (PENDING) booking.

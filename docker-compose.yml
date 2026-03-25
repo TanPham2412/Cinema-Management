@@ -62,8 +62,8 @@ services:
       # App
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # CORS
-      SPRING_WEB_CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:80,http://frontend
-      SPRING_WEBSOCKET_ALLOWED_ORIGINS: http://localhost,http://localhost:80
+      SPRING_WEB_CORS_ALLOWED_ORIGINS: https://plvcinema.xyz,https://www.plvcinema.xyz
+      SPRING_WEBSOCKET_ALLOWED_ORIGINS: https://plvcinema.xyz,https://www.plvcinema.xyz
       # JWT
       JWT_SECRET: ${JWT_SECRET:-2e5f4c9a1b2d4e6f8a0c1e4f6a8c0e2f4a6c8e0f2a2c6e8f0a2c4e6f8a0c2e4f}
       # OAuth2 (optional - leave empty to disable Google Login)
@@ -75,7 +75,7 @@ services:
       # VNPay Configuration (Sandbox)
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-LN55WHPY}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-L69GRTDYKQMRLRR5YN5ARWYAHG3NTQRR}
-      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8081/api/payment/vnpay/return}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-https://api.plvcinema.xyz/api/payment/vnpay/return}
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       # Logging
       LOGGING_LEVEL_NHom5_CINEMA_MANAGEMENT: INFO

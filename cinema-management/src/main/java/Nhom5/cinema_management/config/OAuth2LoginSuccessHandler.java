@@ -1,20 +1,21 @@
 package Nhom5.cinema_management.config;
 
-import Nhom5.cinema_management.model.User;
-import Nhom5.cinema_management.repository.UserRepository;
-import Nhom5.cinema_management.security.JwtService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Map;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Map;
+import Nhom5.cinema_management.model.User;
+import Nhom5.cinema_management.repository.UserRepository;
+import Nhom5.cinema_management.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -59,7 +60,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String token = jwtService.generateToken(user);
 
         // Redirect về frontend với token
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/auth/google/callback")
+        String targetUrl = UriComponentsBuilder.fromUriString("https://plvcinema.xyz/auth/google/callback")
                 .queryParam("token", token)
                 .build()
                 .toUriString();

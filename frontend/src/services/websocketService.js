@@ -20,9 +20,15 @@ class WebSocketService {
       return
     }
 
+    // Production (HTTPS): use native WebSocket through nginx → backend
+    // Local dev (HTTP):   use SockJS directly to backend on port 8081
+    const isHttps = window.location.protocol === 'https:'
+    const clientConfig = isHttps
+      ? { brokerURL: `wss://${window.location.hostname}/api/ws` }
+      : { webSocketFactory: () => new SockJS('http://localhost:8081/api/ws-sockjs') }
+
     this.client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8081/api/ws'),
-      debug: () => {},
+      ...clientConfig,
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,

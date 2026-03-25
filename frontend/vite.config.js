@@ -8,10 +8,14 @@ export default defineConfig({
     global: 'globalThis',
   },
   server: {
+    // Thêm đoạn này để cho phép tên miền của bạn truy cập vào
+    allowedHosts: [
+      'plvcinema.xyz'
+    ],
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'https://api.plvcinema.xyz',
         changeOrigin: true,
       }
     }

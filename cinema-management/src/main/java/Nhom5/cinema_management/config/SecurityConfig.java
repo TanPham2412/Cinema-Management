@@ -84,7 +84,7 @@ public class SecurityConfig {
             // Thêm OAuth2 Login
             .oauth2Login(oauth2 -> oauth2
                 .successHandler(oAuth2LoginSuccessHandler)
-                .failureUrl("http://localhost:3000/login?error=oauth_failed")
+                .failureUrl("https://plvcinema.xyz/login?error=oauth_failed")
             );
 
         return http.build();
@@ -93,7 +93,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList("https://plvcinema.xyz", "https://www.plvcinema.xyz"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
