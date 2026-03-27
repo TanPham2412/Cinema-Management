@@ -1,7 +1,16 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Film, Tag, Building2, Calendar, Users, Ticket, DollarSign, Settings } from 'lucide-react'
+import api from '../../services/api'
 
 const AdminDashboard = () => {
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    api.get('/admin/dashboard/stats')
+      .then(res => setStats(res.data))
+      .catch(() => {})
+  }, [])
   const menuItems = [
     {
       title: 'Quản lý Phim',
@@ -77,11 +86,27 @@ const AdminDashboard = () => {
     }
   ]
 
-  const stats = [
-    { label: 'Tổng doanh thu', value: '0 VNĐ', change: '+0%', color: 'text-cinema-gold' },
-    { label: 'Vé đã bán', value: '0', change: '+0%', color: 'text-cinema-red' },
-    { label: 'Phim đang chiếu', value: '0', change: '+0', color: 'text-blue-400' },
-    { label: 'Rạp hoạt động', value: '0', change: '+0', color: 'text-purple-400' }
+  const statCards = [
+    {
+      label: 'Tổng doanh thu',
+      value: stats ? stats.totalRevenue.toLocaleString('vi-VN') + 'đ' : '...',
+      color: 'text-cinema-gold'
+    },
+    {
+      label: 'Vé đã bán',
+      value: stats ? stats.ticketsSold.toLocaleString() : '...',
+      color: 'text-cinema-red'
+    },
+    {
+      label: 'Phim đang chiếu',
+      value: stats ? stats.nowShowingMovies.toString() : '...',
+      color: 'text-blue-400'
+    },
+    {
+      label: 'Rạp hoạt động',
+      value: stats ? stats.activeCinemas.toString() : '...',
+      color: 'text-purple-400'
+    }
   ]
 
   return (
@@ -95,14 +120,13 @@ const AdminDashboard = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+          {statCards.map((stat, index) => (
             <div
               key={index}
               className="bg-cinema-gray-light/50 backdrop-blur-sm rounded-xl p-6 border border-cinema-gray-light"
             >
               <h3 className="text-sm font-medium text-gray-400 mb-2">{stat.label}</h3>
               <p className={`text-3xl font-bold ${stat.color} mb-1`}>{stat.value}</p>
-              <span className="text-xs text-gray-500">{stat.change} so với tháng trước</span>
             </div>
           ))}
         </div>

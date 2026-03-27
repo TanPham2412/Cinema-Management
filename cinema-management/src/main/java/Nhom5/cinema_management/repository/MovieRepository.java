@@ -1,6 +1,8 @@
 package Nhom5.cinema_management.repository;
 
-import Nhom5.cinema_management.model.Movie;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.util.List;
+import Nhom5.cinema_management.model.Movie;
 
 @Repository
 public interface MovieRepository extends JpaRepository<Movie, Long>, JpaSpecificationExecutor<Movie> {
@@ -62,5 +63,7 @@ public interface MovieRepository extends JpaRepository<Movie, Long>, JpaSpecific
     // Get now showing movies
     @Query("SELECT m FROM Movie m WHERE m.status = 'NOW_SHOWING' ORDER BY m.releaseDate DESC")
     List<Movie> findNowShowingMovies();
+
+    Long countByStatus(Movie.MovieStatus status);
 }
 

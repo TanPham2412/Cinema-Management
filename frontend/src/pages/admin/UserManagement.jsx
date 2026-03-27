@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Users, Search, Shield, User, ChevronLeft, ChevronRight, Ban, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Users, Search, Shield, User, ChevronLeft, ChevronRight, Ban, CheckCircle, Edit2, X } from 'lucide-react'
 import api from '../../services/api'
 
 const ROLE_BADGES = {
@@ -25,6 +25,7 @@ const UserManagement = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [error, setError] = useState('')
   const [total, setTotal] = useState(0)
+  const [editRoleUser, setEditRoleUser] = useState(null)
   const pageSize = 15
 
   useEffect(() => { fetchUsers() }, [page, roleFilter])
@@ -38,21 +39,10 @@ const UserManagement = () => {
       setTotalPages(data.totalPages || 1)
       setTotal(data.totalElements || (data.length ?? 0))
     } catch {
-      setError('API quản lý người dùng chưa sẵn sàng — hiển thị dữ liệu mẫu')
-      const mock = [
-        { id: 1, fullName: 'Nguyễn Admin', email: 'admin@cinema.com', role: 'ADMIN', membershipTier: 'GOLD', loyaltyPoints: 5000, enabled: true, createdAt: '2024-01-01' },
-        { id: 2, fullName: 'Trần Nhân Viên', email: 'staff@cinema.com', role: 'STAFF', membershipTier: 'SILVER', loyaltyPoints: 1200, enabled: true, createdAt: '2024-01-15' },
-        { id: 3, fullName: 'Lê Văn A', email: 'user1@gmail.com', role: 'CUSTOMER', membershipTier: 'BRONZE', loyaltyPoints: 250, enabled: true, createdAt: '2024-02-10' },
-        { id: 4, fullName: 'Nguyễn Thị B', email: 'user2@gmail.com', role: 'CUSTOMER', membershipTier: 'SILVER', loyaltyPoints: 1800, enabled: true, createdAt: '2024-02-20' },
-        { id: 5, fullName: 'Phạm Văn C', email: 'user3@yahoo.com', role: 'CUSTOMER', membershipTier: 'BRONZE', loyaltyPoints: 80, enabled: false, createdAt: '2024-03-05' },
-      ]
-      const filtered = mock.filter(u =>
-        (!roleFilter || u.role === roleFilter) &&
-        (!search || u.fullName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
-      )
-      setUsers(filtered)
+      setError('Không thể tải danh sách người dùng')
+      setUsers([])
       setTotalPages(1)
-      setTotal(filtered.length)
+      setTotal(0)
     } finally {
       setLoading(false)
     }
@@ -69,6 +59,14 @@ const UserManagement = () => {
       await api.put(`/admin/users/${user.id}/toggle-status`)
     } catch {}
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, enabled: !u.enabled } : u))
+  }
+
+  const changeRole = async (userId, newRole) => {
+    try {
+      await api.put(`/admin/users/${userId}/role`, { role: newRole })
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
+    } catch {}
+    setEditRoleUser(null)
   }
 
   const formatDate = (dateStr) => {
@@ -169,12 +167,32 @@ const UserManagement = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {user.role !== 'ADMIN' && (
-                          <button onClick={() => toggleStatus(user)}
-                            className={`p-1.5 rounded-lg transition-colors ${user.enabled !== false ? 'text-gray-400 hover:text-red-400 hover:bg-cinema-gray-light' : 'text-gray-400 hover:text-green-400 hover:bg-cinema-gray-light'}`}
-                            title={user.enabled !== false ? 'Khóa tài khoản' : 'Mở tài khoản'}>
-                            {user.enabled !== false ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                          </button>
+                        <div className="flex items-center justify-end gap-1">
+                          {user.role !== 'ADMIN' && (
+                            <button onClick={() => setEditRoleUser(editRoleUser?.id === user.id ? null : user)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-cinema-gray-light transition-colors"
+                              title="Đổi vai trò">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {user.role !== 'ADMIN' && (
+                            <button onClick={() => toggleStatus(user)}
+                              className={`p-1.5 rounded-lg transition-colors ${user.enabled !== false ? 'text-gray-400 hover:text-red-400 hover:bg-cinema-gray-light' : 'text-gray-400 hover:text-green-400 hover:bg-cinema-gray-light'}`}
+                              title={user.enabled !== false ? 'Khóa tài khoản' : 'Mở tài khoản'}>
+                              {user.enabled !== false ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                            </button>
+                          )}
+                        </div>
+                        {/* Inline role picker */}
+                        {editRoleUser?.id === user.id && (
+                          <div className="mt-2 flex gap-1 justify-end">
+                            {['CUSTOMER', 'STAFF'].map(r => (
+                              <button key={r} onClick={() => changeRole(user.id, r)}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${user.role === r ? 'bg-cinema-red text-white' : 'bg-cinema-gray-light text-gray-300 hover:bg-cinema-gray-lighter'}`}>
+                                {r === 'CUSTOMER' ? 'Khách' : 'Nhân viên'}
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </td>
                     </tr>

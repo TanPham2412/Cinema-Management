@@ -37,7 +37,7 @@ const RevenueManagement = () => {
       const res = await api.get('/admin/revenue', { params: { period } })
       setStats(res.data)
     } catch {
-      setError('API doanh thu chưa sẵn sàng — hiển thị dữ liệu mô phỏng')
+      setError('Không thể tải dữ liệu doanh thu — hiển thị dữ liệu mô phỏng')
       // Mock data
       setStats({
         totalRevenue: 158_500_000,

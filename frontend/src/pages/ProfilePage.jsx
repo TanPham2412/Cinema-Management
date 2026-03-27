@@ -29,6 +29,8 @@ const ProfilePage = () => {
   const [loadingBookings, setLoadingBookings] = useState(true)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 5
 
   const handleLogout = () => {
     dispatch(logout())
@@ -158,42 +160,82 @@ const ProfilePage = () => {
                   <p className="text-gray-400 mb-1">Chưa có đơn đặt vé nào</p>
                   <p className="text-gray-500 text-sm">Đặt vé ngay để xem lịch sử tại đây</p>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {bookings.map(b => {
-                    const st = statusConfig[b.status] || statusConfig.PENDING
-                    const StatusIcon = st.icon
-                    const seatLabel = b.seats?.map(s => `${s.seatRow}${s.seatNumber}`).join(', ') || '—'
-                    return (
-                      <div key={b.id} onClick={() => setSelectedBooking(b)} className="bg-cinema-darker rounded-xl p-4 border border-cinema-gray-light hover:border-cinema-red/40 transition-colors cursor-pointer">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-white font-semibold truncate">{b.movieTitle}</span>
-                              <span className={`inline-flex items-center gap-1 text-xs font-medium ${st.color} shrink-0`}>
-                                <StatusIcon className="w-3 h-3" /> {st.label}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mt-1">
-                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{b.cinemaName} · {b.screenName}</span>
-                              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{b.date}</span>
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.time}</span>
-                              <span className="flex items-center gap-1"><Ticket className="w-3 h-3" />Ghế: {seatLabel}</span>
+              ) : (() => {
+                const totalPages = Math.ceil(bookings.length / PAGE_SIZE)
+                const paginated = bookings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+                return (
+                  <>
+                    <div className="space-y-3">
+                      {paginated.map(b => {
+                        const st = statusConfig[b.status] || statusConfig.PENDING
+                        const StatusIcon = st.icon
+                        const seatLabel = b.seats?.map(s => `${s.seatRow}${s.seatNumber}`).join(', ') || '—'
+                        return (
+                          <div key={b.id} onClick={() => setSelectedBooking(b)} className="bg-cinema-darker rounded-xl p-4 border border-cinema-gray-light hover:border-cinema-red/40 transition-colors cursor-pointer">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-white font-semibold truncate">{b.movieTitle}</span>
+                                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${st.color} shrink-0`}>
+                                    <StatusIcon className="w-3 h-3" /> {st.label}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mt-1">
+                                  <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{b.cinemaName} · {b.screenName}</span>
+                                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{b.date}</span>
+                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.time}</span>
+                                  <span className="flex items-center gap-1"><Ticket className="w-3 h-3" />Ghế: {seatLabel}</span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-cinema-gold font-bold">{b.totalAmount?.toLocaleString('vi-VN')}đ</div>
+                                <div className="text-xs text-gray-500 mt-0.5">{b.bookingCode}</div>
+                                {b.pointsEarned > 0 && (
+                                  <div className="text-xs text-yellow-500 mt-0.5">+{b.pointsEarned} điểm</div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-cinema-gold font-bold">{b.totalAmount?.toLocaleString('vi-VN')}đ</div>
-                            <div className="text-xs text-gray-500 mt-0.5">{b.bookingCode}</div>
-                            {b.pointsEarned > 0 && (
-                              <div className="text-xs text-yellow-500 mt-0.5">+{b.pointsEarned} điểm</div>
-                            )}
-                          </div>
-                        </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 mt-5">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cinema-darker border border-cinema-gray-light text-gray-400 hover:text-white hover:border-cinema-red disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          ‹
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-cinema-red text-white'
+                                : 'bg-cinema-darker border border-cinema-gray-light text-gray-400 hover:text-white hover:border-cinema-red'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cinema-darker border border-cinema-gray-light text-gray-400 hover:text-white hover:border-cinema-red disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          ›
+                        </button>
+                        <span className="text-xs text-gray-500 ml-2">{bookings.length} vé tổng cộng</span>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                    )}
+                  </>
+                )
+              })()}
             </div>
           </div>
         </div>

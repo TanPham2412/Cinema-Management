@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Ticket, Search, ChevronLeft, ChevronRight, Eye, X, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { ArrowLeft, Ticket, Search, ChevronLeft, ChevronRight, Eye, X, CheckCircle, Clock, XCircle, Building2, Film } from 'lucide-react'
 import api from '../../services/api'
+import cinemaService from '../../services/cinemaService'
+import movieService from '../../services/movieService'
 
 const STATUS_BADGES = {
   CONFIRMED:  { label: 'Đã xác nhận', icon: CheckCircle, color: 'bg-green-500/20 text-green-400 border-green-400/30' },
@@ -22,6 +24,10 @@ const BookingManagement = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [cinemaFilter, setCinemaFilter] = useState('')
+  const [movieFilter, setMovieFilter] = useState('')
+  const [cinemas, setCinemas] = useState([])
+  const [movies, setMovies] = useState([])
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
@@ -29,22 +35,37 @@ const BookingManagement = () => {
   const [error, setError] = useState('')
   const pageSize = 15
 
-  useEffect(() => { fetchBookings() }, [page, statusFilter])
+  useEffect(() => {
+    // Load cinemas and movies for filter dropdowns
+    cinemaService.getCinemas().then(data => setCinemas(Array.isArray(data) ? data : [])).catch(() => {})
+    movieService.getAllMovies().then(data => {
+      const list = Array.isArray(data) ? data : (data?.content || [])
+      setMovies(list)
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => { fetchBookings() }, [page, statusFilter, cinemaFilter, movieFilter])
 
   const fetchBookings = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/admin/bookings', { params: { page, size: pageSize, status: statusFilter || undefined } })
+      const res = await api.get('/admin/bookings', {
+        params: {
+          page, size: pageSize,
+          status: statusFilter || undefined,
+          keyword: search || undefined,
+          cinemaId: cinemaFilter || undefined,
+          movieId: movieFilter || undefined,
+        }
+      })
       const data = res.data
       setBookings(data.content || data || [])
       setTotalPages(data.totalPages || 1)
       setTotal(data.totalElements || (Array.isArray(data) ? data.length : 0))
+      setError('')
     } catch {
-      setError('API quản lý đơn hàng chưa sẵn sàng — hiển thị dữ liệu mẫu')
-      const filtered = MOCK_BOOKINGS.filter(b => !statusFilter || b.status === statusFilter)
-      setBookings(filtered)
-      setTotalPages(1)
-      setTotal(filtered.length)
+      setError('Không thể tải dữ liệu đơn hàng')
+      setBookings([])
     } finally {
       setLoading(false)
     }
@@ -60,8 +81,18 @@ const BookingManagement = () => {
     if (!window.confirm('Hủy đơn hàng này?')) return
     try {
       await api.put(`/bookings/${id}/cancel`)
-    } catch {}
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' } : b))
+      fetchBookings()
+    } catch {
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' } : b))
+    }
+  }
+
+  const resetFilters = () => {
+    setSearch('')
+    setStatusFilter('')
+    setCinemaFilter('')
+    setMovieFilter('')
+    setPage(0)
   }
 
   const formatMoney = (n) => n?.toLocaleString() + 'đ'
@@ -85,13 +116,13 @@ const BookingManagement = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {Object.entries(STATUS_BADGES).map(([key, val]) => {
-            const count = bookings.filter(b => b.status === key).length
             const Icon = val.icon
             return (
-              <div key={key} className="bg-cinema-gray rounded-xl border border-cinema-gray-light p-4 flex items-center gap-3">
+              <div key={key} onClick={() => { setStatusFilter(key === statusFilter ? '' : key); setPage(0) }}
+                className={`bg-cinema-gray rounded-xl border p-4 flex items-center gap-3 cursor-pointer transition-colors ${key === statusFilter ? 'border-cinema-red' : 'border-cinema-gray-light hover:border-cinema-gray-lighter'}`}>
                 <Icon className={`w-8 h-8 ${val.color.split(' ')[1]}`} />
                 <div>
-                  <div className="text-2xl font-bold text-white">{count}</div>
+                  <div className="text-2xl font-bold text-white">—</div>
                   <div className="text-gray-400 text-xs">{val.label}</div>
                 </div>
               </div>
@@ -104,7 +135,7 @@ const BookingManagement = () => {
           <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-48">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input type="text" placeholder="Mã đơn, tên KH, email..." value={search} onChange={e => setSearch(e.target.value)}
+              <input type="text" placeholder="Mã đơn, tên KH, email, phim..." value={search} onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 bg-cinema-gray border border-cinema-gray-light text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm" />
             </div>
             <button type="submit" className="px-4 py-2.5 bg-cinema-red text-white rounded-lg hover:bg-cinema-red-dark text-sm">Tìm</button>
@@ -114,6 +145,21 @@ const BookingManagement = () => {
             <option value="">Tất cả trạng thái</option>
             {Object.entries(STATUS_BADGES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
+          <select value={cinemaFilter} onChange={e => { setCinemaFilter(e.target.value); setPage(0) }}
+            className="px-3 py-2.5 bg-cinema-gray border border-cinema-gray-light text-gray-300 rounded-lg focus:outline-none focus:border-cinema-red text-sm">
+            <option value="">Tất cả rạp</option>
+            {cinemas.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={movieFilter} onChange={e => { setMovieFilter(e.target.value); setPage(0) }}
+            className="px-3 py-2.5 bg-cinema-gray border border-cinema-gray-light text-gray-300 rounded-lg focus:outline-none focus:border-cinema-red text-sm min-w-40">
+            <option value="">Tất cả phim</option>
+            {movies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+          </select>
+          {(statusFilter || cinemaFilter || movieFilter || search) && (
+            <button onClick={resetFilters} className="px-3 py-2.5 text-gray-400 hover:text-white border border-cinema-gray-light rounded-lg text-sm transition-colors">
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
 
         {/* Table */}
