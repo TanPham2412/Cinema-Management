@@ -5,14 +5,26 @@ import HomePage from './pages/HomePage'
 import MoviesPage from './pages/MoviesPage'
 import MovieDetailPage from './pages/MovieDetailPage'
 import BookingPage from './pages/BookingPage'
+import BookingConfirmPage from './pages/BookingConfirmPage'
+import VNPayReturnPage from './pages/VNPayReturnPage'
+import MoMoReturnPage from './pages/MoMoReturnPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import MovieManagement from './pages/admin/MovieManagement'
 import GenreManagement from './pages/admin/GenreManagement'
+import CinemaManagement from './pages/admin/CinemaManagement'
+import ScreeningManagement from './pages/admin/ScreeningManagement'
+import UserManagement from './pages/admin/UserManagement'
+import BookingManagement from './pages/admin/BookingManagement'
+import RevenueManagement from './pages/admin/RevenueManagement'
 import StaffDashboard from './pages/staff/StaffDashboard'
-import ProtectedRoute from './components/ProtectedRoute'
+import StaffBookingPage from './pages/staff/StaffBookingPage'
+import ScreeningSelectionPage from './pages/ScreeningSelectionPage'
+import CinemasPage from './pages/CinemasPage'
+import CinemaDetailPage from './pages/CinemaDetailPage'
+import ProtectedRoute, { UserOnlyRoute } from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
 
 function App() {
@@ -24,18 +36,24 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="movies" element={<MoviesPage />} />
           <Route path="movies/:id" element={<MovieDetailPage />} />
-          <Route path="booking/:screeningId" element={<BookingPage />} />
+          <Route path="movies/:id/screenings" element={<ScreeningSelectionPage />} />
+          <Route path="cinemas" element={<CinemasPage />} />
+          <Route path="cinemas/:id" element={<CinemaDetailPage />} />
+          <Route path="booking/:screeningId" element={<UserOnlyRoute><BookingPage /></UserOnlyRoute>} />
+          <Route path="booking/confirm" element={<UserOnlyRoute><BookingConfirmPage /></UserOnlyRoute>} />
+          <Route path="payment/vnpay/result" element={<UserOnlyRoute><VNPayReturnPage /></UserOnlyRoute>} />
+          <Route path="payment/momo/result" element={<UserOnlyRoute><MoMoReturnPage /></UserOnlyRoute>} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="auth/google/callback" element={<OAuth2RedirectHandler />} />
           
-          {/* Protected Routes */}
+          {/* Protected Routes - User only */}
           <Route
             path="profile"
             element={
-              <ProtectedRoute>
+              <UserOnlyRoute>
                 <ProfilePage />
-              </ProtectedRoute>
+              </UserOnlyRoute>
             }
           />
           
@@ -64,8 +82,56 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="admin/cinemas"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <CinemaManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/screenings"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <ScreeningManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/users"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/bookings"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <BookingManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/revenue"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <RevenueManagement />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Staff Routes */}
+          <Route
+            path="staff/booking/:screeningId"
+            element={
+              <ProtectedRoute roles={['STAFF', 'ADMIN']}>
+                <StaffBookingPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="staff/*"
             element={

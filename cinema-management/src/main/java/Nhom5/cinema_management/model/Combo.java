@@ -31,7 +31,10 @@ public class Combo {
     
     @Column(nullable = false)
     private Boolean available = true;
-    
+
+    @Column(length = 20)
+    private String category; // COMBO, POPCORN, DRINK
+
     @OneToMany(mappedBy = "combo", cascade = CascadeType.ALL)
     private List<BookingCombo> bookingCombos;
 }

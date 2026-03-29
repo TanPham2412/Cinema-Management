@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_URL = '/api'
+const API_URL = 'https://api.plvcinema.xyz/api'
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -27,7 +27,9 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || ''
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/2fa')
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'

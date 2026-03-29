@@ -1,12 +1,30 @@
 package Nhom5.cinema_management.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import Nhom5.cinema_management.dto.AuthResponse;
 import Nhom5.cinema_management.dto.LoginRequest;
 import Nhom5.cinema_management.dto.RegisterRequest;
+import Nhom5.cinema_management.dto.UserDTO;
+import Nhom5.cinema_management.model.User;
+import Nhom5.cinema_management.repository.UserRepository;
+import Nhom5.cinema_management.security.JwtService;
 import Nhom5.cinema_management.service.AuthService;
+import Nhom5.cinema_management.service.TwoFactorService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,6 +33,9 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final TwoFactorService twoFactorService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
@@ -22,7 +43,153 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> getCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", user.getId());
+        result.put("email", user.getEmail());
+        result.put("fullName", user.getFullName());
+        result.put("phoneNumber", user.getPhoneNumber());
+        result.put("role", user.getRole().name());
+        result.put("loyaltyPoints", user.getLoyaltyPoints());
+        result.put("membershipTier", user.getMembershipTier().name());
+        result.put("enabled", user.isEnabled());
+        result.put("twoFactorEnabled", user.getTwoFactorEnabled() != null && user.getTwoFactorEnabled());
+        return ResponseEntity.ok(result);
+    }
+
+    /** Generate a fresh JWT based on current DB role — used after role change */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String token = jwtService.generateToken(user);
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", Map.of(
+            "id", user.getId(),
+            "email", user.getEmail(),
+            "fullName", user.getFullName(),
+            "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
+            "role", user.getRole().name(),
+            "loyaltyPoints", user.getLoyaltyPoints(),
+            "membershipTier", user.getMembershipTier().name()
+        ));
+        return ResponseEntity.ok(result);
+    }
+
+    /** Update own profile (fullName, phoneNumber) */
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> body) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (body.containsKey("fullName") && body.get("fullName") != null && !body.get("fullName").isBlank()) {
+            user.setFullName(body.get("fullName").trim());
+        }
+        if (body.containsKey("phoneNumber")) {
+            user.setPhoneNumber(body.get("phoneNumber"));
+        }
+        userRepository.save(user);
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", user.getId());
+        result.put("email", user.getEmail());
+        result.put("fullName", user.getFullName());
+        result.put("phoneNumber", user.getPhoneNumber());
+        result.put("role", user.getRole().name());
+        result.put("loyaltyPoints", user.getLoyaltyPoints());
+        result.put("membershipTier", user.getMembershipTier().name());
+        return ResponseEntity.ok(result);
+    }
+
+    // ── 2FA Endpoints ──────────────────────────────────────────────────────
+
+    /** Step 1: generate secret + QR code URI for setup */
+    @PostMapping("/2fa/setup")
+    public ResponseEntity<?> setup2FA(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user.getTwoFactorEnabled() != null && user.getTwoFactorEnabled()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "2FA đã được kích hoạt"));
+        }
+        String secret = twoFactorService.generateSecret();
+        user.setTwoFactorSecret(secret);
+        userRepository.save(user);
+        String qrUri = twoFactorService.getQRCodeUri(user.getEmail(), secret);
+        return ResponseEntity.ok(Map.of("secret", secret, "qrUri", qrUri));
+    }
+
+    /** Step 2: verify the first TOTP code, then enable 2FA */
+    @PostMapping("/2fa/enable")
+    public ResponseEntity<?> enable2FA(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> body) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String code = body.get("code");
+        if (code == null || user.getTwoFactorSecret() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        if (!twoFactorService.verifyCode(user.getTwoFactorSecret(), code)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Mã xác thực không đúng. Vui lòng thử lại."));
+        }
+        user.setTwoFactorEnabled(true);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Xác thực 2 lớp đã được kích hoạt"));
+    }
+
+    /** Disable 2FA (requires valid TOTP code) */
+    @PostMapping("/2fa/disable")
+    public ResponseEntity<?> disable2FA(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> body) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String code = body.get("code");
+        if (code == null || user.getTwoFactorSecret() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        if (!twoFactorService.verifyCode(user.getTwoFactorSecret(), code)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Mã xác thực không đúng. Vui lòng thử lại."));
+        }
+        user.setTwoFactorEnabled(false);
+        user.setTwoFactorSecret(null);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Xác thực 2 lớp đã được tắt"));
+    }
+
+    /** Verify TOTP code during login, return full JWT */
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<?> verify2FA(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String code = body.get("code");
+        if (email == null || code == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        User user = userRepository.findByEmail(email)
+                .orElse(null);
+        if (user == null || user.getTwoFactorSecret() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Tài khoản không hợp lệ"));
+        }
+        if (!twoFactorService.verifyCode(user.getTwoFactorSecret(), code)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Mã xác thực không đúng. Vui lòng thử lại."));
+        }
+        String token = jwtService.generateToken(user);
+        return ResponseEntity.ok(AuthResponse.builder()
+                .token(token)
+                .user(UserDTO.fromEntity(user))
+                .build());
     }
 }

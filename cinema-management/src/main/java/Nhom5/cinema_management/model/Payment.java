@@ -1,9 +1,22 @@
 package Nhom5.cinema_management.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "payments")
@@ -29,6 +42,7 @@ public class Payment {
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
@@ -38,6 +52,7 @@ public class Payment {
     
     private String paymentGatewayResponse;
     
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     
@@ -45,6 +60,7 @@ public class Payment {
     
     public enum PaymentMethod {
         CASH,           // Tiền mặt (tại quầy)
+        BANK_TRANSFER,  // Chuyển khoản ngân hàng
         VNPAY,          // VNPAY
         MOMO,           // MoMo
         CREDIT_CARD,    // Thẻ tín dụng

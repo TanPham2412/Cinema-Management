@@ -1,7 +1,80 @@
+import { useState, useEffect } from 'react'
 import { Film, Ticket, Star, TrendingUp, Clock, Calendar } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import movieService from '../services/movieService'
+
+const MovieCard = ({ movie }) => {
+  const badge = movie.status === 'NOW_SHOWING'
+    ? { text: 'Đang chiếu', color: 'bg-green-500' }
+    : { text: 'Sắp chiếu', color: 'bg-cinema-gold text-cinema-darker' }
+  return (
+    <Link to={`/movies/${movie.id}`} className="group cursor-pointer">
+      <div className="relative overflow-hidden rounded-xl bg-cinema-gray-light aspect-[2/3] mb-3">
+        {movie.posterUrl ? (
+          <img
+            src={`/api${movie.posterUrl}`}
+            alt={movie.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Film className="w-16 h-16 text-gray-600" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <span className={`absolute top-2 right-2 px-2 py-0.5 ${badge.color} text-white text-xs font-bold rounded`}>
+          {badge.text}
+        </span>
+        {movie.rating && (
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/70 px-2 py-1 rounded">
+            <Star className="w-3 h-3 text-cinema-gold fill-cinema-gold" />
+            <span className="text-white text-xs font-semibold">{movie.rating.toFixed(1)}</span>
+          </div>
+        )}
+      </div>
+      <h3 className="text-white font-semibold text-sm mb-1 group-hover:text-cinema-gold transition-colors line-clamp-2">{movie.title}</h3>
+      <div className="flex items-center gap-2 text-gray-400 text-xs">
+        <Clock className="w-3 h-3" />
+        <span>{movie.duration} phút</span>
+        {movie.genres?.length > 0 && (
+          <span className="text-cinema-gold">• {movie.genres[0].name}</span>
+        )}
+      </div>
+    </Link>
+  )
+}
+
+const SkeletonCard = () => (
+  <div className="animate-pulse">
+    <div className="aspect-[2/3] bg-cinema-gray-light rounded-xl mb-3"></div>
+    <div className="h-4 bg-cinema-gray-light rounded mb-2"></div>
+    <div className="h-3 bg-cinema-gray-light rounded w-2/3"></div>
+  </div>
+)
 
 const HomePage = () => {
+  const [nowShowing, setNowShowing] = useState([])
+  const [comingSoon, setComingSoon] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        const [nowData, soonData] = await Promise.all([
+          movieService.getNowShowing(),
+          movieService.getComingSoon(),
+        ])
+        setNowShowing(nowData.slice(0, 8))
+        setComingSoon(soonData.slice(0, 8))
+      } catch (err) {
+        console.error('Error fetching movies:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchMovies()
+  }, [])
+
   return (
     <div className="bg-gradient-to-b from-cinema-darker via-cinema-dark to-cinema-darker min-h-screen">
       {/* Hero Section */}
@@ -87,32 +160,17 @@ const HomePage = () => {
             </h2>
             <p className="text-gray-400">Những bộ phim hot nhất hiện nay</p>
           </div>
-          <Link 
-            to="/movies" 
-            className="text-cinema-gold hover:text-cinema-gold-dark transition-colors flex items-center space-x-1"
-          >
-            <span>Xem tất cả</span>
-            <span>→</span>
+          <Link to="/movies" className="text-cinema-gold hover:text-cinema-gold-dark transition-colors flex items-center space-x-1">
+            <span>Xem tất cả</span><span>→</span>
           </Link>
         </div>
-        
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {/* Movie cards placeholder */}
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="group cursor-pointer">
-              <div className="relative overflow-hidden rounded-xl bg-cinema-gray-light aspect-[2/3] mb-4">
-                <div className="absolute inset-0 bg-gradient-to-t from-cinema-darker via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Film className="w-16 h-16 text-gray-600" />
-                </div>
-                <div className="absolute top-3 right-3 bg-cinema-red text-white text-xs font-bold px-2 py-1 rounded">
-                  HOT
-                </div>
-              </div>
-              <h3 className="text-white font-semibold mb-1 group-hover:text-cinema-gold transition-colors">Tên Phim {i}</h3>
-              <p className="text-gray-400 text-sm">Hành Động, Phiêu Lưu</p>
-            </div>
-          ))}
+          {loading
+            ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
+            : nowShowing.length === 0
+              ? <p className="text-gray-400 col-span-full text-center py-8">Chưa có phim đang chiếu</p>
+              : nowShowing.map(movie => <MovieCard key={movie.id} movie={movie} />)
+          }
         </div>
       </section>
 
@@ -126,32 +184,17 @@ const HomePage = () => {
             </h2>
             <p className="text-gray-400">Những bộ phim đáng mong chờ</p>
           </div>
-          <Link 
-            to="/movies?tab=coming-soon" 
-            className="text-cinema-gold hover:text-cinema-gold-dark transition-colors flex items-center space-x-1"
-          >
-            <span>Xem tất cả</span>
-            <span>→</span>
+          <Link to="/movies" className="text-cinema-gold hover:text-cinema-gold-dark transition-colors flex items-center space-x-1">
+            <span>Xem tất cả</span><span>→</span>
           </Link>
         </div>
-        
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {/* Coming soon movie cards placeholder */}
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="group cursor-pointer">
-              <div className="relative overflow-hidden rounded-xl bg-cinema-gray-light aspect-[2/3] mb-4">
-                <div className="absolute inset-0 bg-gradient-to-t from-cinema-darker via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Clock className="w-16 h-16 text-gray-600" />
-                </div>
-                <div className="absolute top-3 right-3 bg-cinema-gold text-cinema-darker text-xs font-bold px-2 py-1 rounded">
-                  SẮP
-                </div>
-              </div>
-              <h3 className="text-white font-semibold mb-1 group-hover:text-cinema-gold transition-colors">Phim Sắp Chiếu {i}</h3>
-              <p className="text-gray-400 text-sm">Chiếu từ 15/02/2026</p>
-            </div>
-          ))}
+          {loading
+            ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
+            : comingSoon.length === 0
+              ? <p className="text-gray-400 col-span-full text-center py-8">Chưa có phim sắp chiếu</p>
+              : comingSoon.map(movie => <MovieCard key={movie.id} movie={movie} />)
+          }
         </div>
       </section>
 

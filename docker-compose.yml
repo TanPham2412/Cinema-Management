@@ -7,12 +7,15 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-cinema123}
       MYSQL_DATABASE: cinema_management
+      MYSQL_USER: ${MYSQL_USER:-appuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-apppassword}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-cinema123}"]
       interval: 10s
@@ -59,16 +62,21 @@ services:
       # App
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # CORS
-      SPRING_WEB_CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:80,http://frontend
-      SPRING_WEBSOCKET_ALLOWED_ORIGINS: http://localhost,http://localhost:80
+      SPRING_WEB_CORS_ALLOWED_ORIGINS: https://plvcinema.xyz,https://www.plvcinema.xyz
+      SPRING_WEBSOCKET_ALLOWED_ORIGINS: https://plvcinema.xyz,https://www.plvcinema.xyz
       # JWT
       JWT_SECRET: ${JWT_SECRET:-2e5f4c9a1b2d4e6f8a0c1e4f6a8c0e2f4a6c8e0f2a2c6e8f0a2c4e6f8a0c2e4f}
-      # OAuth2
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # OAuth2 (optional - leave empty to disable Google Login)
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-disabled}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-disabled}
       # Mail
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # VNPay Configuration (Sandbox)
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-LN55WHPY}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-L69GRTDYKQMRLRR5YN5ARWYAHG3NTQRR}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-https://api.plvcinema.xyz/api/payment/vnpay/return}
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       # Logging
       LOGGING_LEVEL_NHom5_CINEMA_MANAGEMENT: INFO
     volumes:

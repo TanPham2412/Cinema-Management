@@ -70,13 +70,21 @@ const Header = () => {
                     <span className="hidden lg:inline">Dashboard</span>
                   </Link>
                 )}
-                <Link
-                  to="/profile"
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-cinema-gold hover:bg-cinema-gray-light rounded-lg transition-all duration-300"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="hidden lg:inline">{user.fullName}</span>
-                </Link>
+                {(user.role === 'ADMIN' || user.role === 'STAFF') && (
+                  <span className="hidden lg:flex items-center space-x-2 px-4 py-2 text-gray-500 cursor-default rounded-lg">
+                    <User className="w-4 h-4" />
+                    <span>{user.fullName}</span>
+                  </span>
+                )}
+                {user.role !== 'ADMIN' && user.role !== 'STAFF' && (
+                  <Link
+                    to="/profile"
+                    className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-cinema-gold hover:bg-cinema-gray-light rounded-lg transition-all duration-300"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="hidden lg:inline">{user.fullName}</span>
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-cinema-red hover:bg-cinema-gray-light rounded-lg transition-all duration-300"

@@ -1,5 +1,12 @@
 package Nhom5.cinema_management.service;
 
+import java.util.Map;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import Nhom5.cinema_management.dto.AuthResponse;
 import Nhom5.cinema_management.dto.LoginRequest;
 import Nhom5.cinema_management.dto.RegisterRequest;
@@ -9,10 +16,6 @@ import Nhom5.cinema_management.model.User;
 import Nhom5.cinema_management.repository.UserRepository;
 import Nhom5.cinema_management.security.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -48,7 +51,7 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public Object login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -58,6 +61,14 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // If 2FA is enabled, return a challenge instead of a JWT
+        if (user.getTwoFactorEnabled() != null && user.getTwoFactorEnabled()) {
+            return Map.of(
+                "requiresTwoFactor", true,
+                "email", user.getEmail()
+            );
+        }
 
         String token = jwtService.generateToken(user);
 

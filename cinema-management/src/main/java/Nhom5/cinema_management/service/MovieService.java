@@ -1,14 +1,12 @@
 package Nhom5.cinema_management.service;
 
-import Nhom5.cinema_management.dto.GenreDTO;
-import Nhom5.cinema_management.dto.MovieRequestDTO;
-import Nhom5.cinema_management.dto.MovieResponseDTO;
-import Nhom5.cinema_management.dto.MovieSearchDTO;
-import Nhom5.cinema_management.model.Genre;
-import Nhom5.cinema_management.model.Movie;
-import Nhom5.cinema_management.repository.GenreRepository;
-import Nhom5.cinema_management.repository.MovieRepository;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,11 +15,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import Nhom5.cinema_management.dto.GenreDTO;
+import Nhom5.cinema_management.dto.MovieRequestDTO;
+import Nhom5.cinema_management.dto.MovieResponseDTO;
+import Nhom5.cinema_management.dto.MovieSearchDTO;
+import Nhom5.cinema_management.model.Genre;
+import Nhom5.cinema_management.model.Movie;
+import Nhom5.cinema_management.repository.GenreRepository;
+import Nhom5.cinema_management.repository.MovieRepository;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -221,7 +225,13 @@ public class MovieService {
             if (searchDTO.getAgeRating() != null && !searchDTO.getAgeRating().isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("ageRating"), searchDTO.getAgeRating()));
             }
-            
+
+            // Exclude ENDED movies for public-facing search
+            if (searchDTO.isExcludeEnded()) {
+                predicates.add(criteriaBuilder.notEqual(
+                    root.get("status"), Movie.MovieStatus.ENDED));
+            }
+
             query.distinct(true);
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };

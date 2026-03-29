@@ -70,12 +70,8 @@ public class GenreService {
     public void deleteGenre(Long id) {
         Genre genre = genreRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thể loại với ID: " + id));
-        
-        if (!genre.getMovies().isEmpty()) {
-            throw new RuntimeException("Không thể xóa thể loại đang được sử dụng bởi " + 
-                                     genre.getMovies().size() + " phim");
-        }
-        
+        // Remove genre from movie_genres join table first, then delete
+        genreRepository.deleteMovieGenresByGenreId(id);
         genreRepository.delete(genre);
     }
     

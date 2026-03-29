@@ -21,4 +21,5 @@ public class MovieSearchDTO {
     private Integer size = 10;
     private String sortBy = "releaseDate"; // title, releaseDate, rating, createdAt
     private String sortDirection = "DESC"; // ASC, DESC
+    private boolean excludeEnded = false;
 }
