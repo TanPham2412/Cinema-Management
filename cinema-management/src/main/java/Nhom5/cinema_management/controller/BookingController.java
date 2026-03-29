@@ -2,6 +2,9 @@ package Nhom5.cinema_management.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,10 +16,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import Nhom5.cinema_management.dto.BookingRequestDTO;
 import Nhom5.cinema_management.dto.BookingResponseDTO;
+import Nhom5.cinema_management.model.Booking;
 import Nhom5.cinema_management.service.BookingService;
 import lombok.RequiredArgsConstructor;
 
@@ -60,5 +65,20 @@ public class BookingController {
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(bookingService.cancelBooking(id, userDetails.getUsername()));
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<Page<BookingResponseDTO>> getAdminBookings(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long cinemaId,
+            @RequestParam(required = false) Long movieId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        Booking.BookingStatus bookingStatus = (status != null && !status.isBlank())
+                ? Booking.BookingStatus.valueOf(status) : null;
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(bookingService.getAdminBookings(bookingStatus, cinemaId, movieId, keyword, pageable));
     }
 }

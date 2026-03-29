@@ -1,23 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Ticket, Search, ChevronLeft, ChevronRight, Eye, X, CheckCircle, Clock, XCircle, Building2, Film } from 'lucide-react'
+import { ArrowLeft, Ticket, Search, ChevronLeft, ChevronRight, Eye, X, CheckCircle, XCircle, Building2, Film } from 'lucide-react'
 import api from '../../services/api'
 import cinemaService from '../../services/cinemaService'
 import movieService from '../../services/movieService'
 
 const STATUS_BADGES = {
   CONFIRMED:  { label: 'Đã xác nhận', icon: CheckCircle, color: 'bg-green-500/20 text-green-400 border-green-400/30' },
-  PENDING:    { label: 'Chờ thanh toán', icon: Clock, color: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30' },
   CANCELLED:  { label: 'Đã hủy', icon: XCircle, color: 'bg-red-500/20 text-red-400 border-red-400/30' },
   COMPLETED:  { label: 'Hoàn thành', icon: CheckCircle, color: 'bg-blue-500/20 text-blue-400 border-blue-400/30' },
 }
-
-const MOCK_BOOKINGS = [
-  { id: 1, bookingCode: 'BK001234', customerName: 'Lê Văn A', customerEmail: 'user1@gmail.com', movieTitle: 'Avengers: Endgame', cinemaName: 'CGV Vincom', screeningTime: '2024-06-15 10:00', seats: ['A1', 'A2'], totalAmount: 180000, status: 'CONFIRMED', createdAt: '2024-06-14' },
-  { id: 2, bookingCode: 'BK001235', customerName: 'Nguyễn Thị B', customerEmail: 'user2@gmail.com', movieTitle: 'Spider-Man: NWH', cinemaName: 'CGV Aeon Mall', screeningTime: '2024-06-15 13:30', seats: ['C5'], totalAmount: 100000, status: 'COMPLETED', createdAt: '2024-06-14' },
-  { id: 3, bookingCode: 'BK001236', customerName: 'Trần C', customerEmail: 'user3@gmail.com', movieTitle: 'The Batman', cinemaName: 'CGV Vincom', screeningTime: '2024-06-16 20:00', seats: ['H1', 'H2'], totalAmount: 280000, status: 'PENDING', createdAt: '2024-06-15' },
-  { id: 4, bookingCode: 'BK001237', customerName: 'Phạm D', customerEmail: 'user4@gmail.com', movieTitle: 'Dune: Part Two', cinemaName: 'Lotte Cinema', screeningTime: '2024-06-16 16:00', seats: ['B3'], totalAmount: 90000, status: 'CANCELLED', createdAt: '2024-06-15' },
-]
 
 const BookingManagement = () => {
   const [bookings, setBookings] = useState([])
@@ -38,7 +30,7 @@ const BookingManagement = () => {
   useEffect(() => {
     // Load cinemas and movies for filter dropdowns
     cinemaService.getCinemas().then(data => setCinemas(Array.isArray(data) ? data : [])).catch(() => {})
-    movieService.getAllMovies().then(data => {
+    movieService.searchMovies({ size: 200 }).then(data => {
       const list = Array.isArray(data) ? data : (data?.content || [])
       setMovies(list)
     }).catch(() => {})
@@ -49,7 +41,7 @@ const BookingManagement = () => {
   const fetchBookings = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/admin/bookings', {
+      const res = await api.get('/bookings/admin', {
         params: {
           page, size: pageSize,
           status: statusFilter || undefined,
@@ -96,6 +88,8 @@ const BookingManagement = () => {
   }
 
   const formatMoney = (n) => n?.toLocaleString() + 'đ'
+  const formatDate = (dt) => dt ? new Date(dt).toLocaleDateString('vi-VN') : '—'
+  const formatSeats = (seats) => (seats || []).map(s => `${s.seatRow}${s.seatNumber}`).join(', ')
 
   return (
     <div className="min-h-screen bg-cinema-darker">
@@ -191,39 +185,34 @@ const BookingManagement = () => {
                 </td></tr>
               ) : (
                 bookings.map(b => {
-                  const badge = STATUS_BADGES[b.status] || STATUS_BADGES.PENDING
+                  const badge = STATUS_BADGES[b.status] || STATUS_BADGES.CONFIRMED
                   const Icon = badge.icon
                   return (
                     <tr key={b.id} className="hover:bg-cinema-gray-lighter/30 transition-colors">
                       <td className="px-4 py-3 font-mono text-cinema-gold text-xs">{b.bookingCode}</td>
                       <td className="px-4 py-3">
-                        <div className="text-white">{b.customerName}</div>
+                        <div className="text-white">{b.userName}</div>
                         <div className="text-gray-500 text-xs">{b.customerEmail}</div>
                       </td>
                       <td className="px-4 py-3 text-gray-300">{b.movieTitle}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {(b.seats || []).map(s => (
-                            <span key={s} className="px-1.5 py-0.5 bg-cinema-gray-light text-gray-300 rounded text-xs">{s}</span>
+                            <span key={`${s.seatRow}${s.seatNumber}`} className="px-1.5 py-0.5 bg-cinema-gray-light text-gray-300 rounded text-xs">{s.seatRow}{s.seatNumber}</span>
                           ))}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-cinema-gold font-semibold">{formatMoney(b.totalAmount)}</td>
-                      <td className="px-4 py-3 text-gray-400">{b.createdAt}</td>
+                      <td className="px-4 py-3 text-gray-400">{formatDate(b.bookingTime)}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium ${badge.color}`}>
                           <Icon className="w-3 h-3" /> {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right flex items-center gap-1 justify-end">
+                      <td className="px-4 py-3 text-right">
                         <button onClick={() => setSelected(b)} className="p-1.5 text-gray-400 hover:text-white hover:bg-cinema-gray-light rounded-lg transition-colors">
                           <Eye className="w-4 h-4" />
                         </button>
-                        {b.status === 'PENDING' && (
-                          <button onClick={() => handleCancel(b.id)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-cinema-gray-light rounded-lg transition-colors">
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
                       </td>
                     </tr>
                   )
@@ -256,14 +245,14 @@ const BookingManagement = () => {
             <div className="p-5 space-y-3 text-sm">
               {[
                 ['Mã đơn', selected.bookingCode],
-                ['Khách hàng', selected.customerName],
+                ['Khách hàng', selected.userName],
                 ['Email', selected.customerEmail],
                 ['Phim', selected.movieTitle],
                 ['Rạp', selected.cinemaName],
-                ['Suất chiếu', selected.screeningTime],
-                ['Ghế', (selected.seats || []).join(', ')],
+                ['Suất chiếu', `${selected.date || ''} ${selected.time || ''}`],
+                ['Ghế', formatSeats(selected.seats)],
                 ['Tổng tiền', formatMoney(selected.totalAmount)],
-                ['Ngày đặt', selected.createdAt],
+                ['Ngày đặt', formatDate(selected.bookingTime)],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between">
                   <span className="text-gray-400">{k}</span>

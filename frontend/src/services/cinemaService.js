@@ -29,6 +29,11 @@ const deleteCinema = async (id) => {
   await api.delete(`/cinemas/admin/${id}`)
 }
 
+const toggleCinemaActive = async (id) => {
+  const response = await api.put(`/cinemas/admin/${id}/toggle-active`)
+  return response.data
+}
+
 const getScreensByCinema = async (cinemaId) => {
   const response = await api.get(`/cinemas/${cinemaId}/screens`)
   return response.data
@@ -44,6 +49,16 @@ const addScreen = async (cinemaId, data) => {
   return response.data
 }
 
+const updateScreen = async (screenId, data) => {
+  const response = await api.put(`/cinemas/admin/screens/${screenId}`, data)
+  return response.data
+}
+
+const toggleScreenActive = async (screenId) => {
+  const response = await api.put(`/cinemas/admin/screens/${screenId}/toggle-active`)
+  return response.data
+}
+
 const cinemaService = {
   getCinemas,
   getCinemaById,
@@ -51,9 +66,12 @@ const cinemaService = {
   createCinema,
   updateCinema,
   deleteCinema,
+  toggleCinemaActive,
   getScreensByCinema,
   getScreenWithSeats,
   addScreen,
+  updateScreen,
+  toggleScreenActive,
 }
 
 export default cinemaService

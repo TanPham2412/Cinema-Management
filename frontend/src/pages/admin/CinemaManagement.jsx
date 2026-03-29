@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Pencil, Trash2, Building2, MapPin, Phone, Search, X, Monitor, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Building2, MapPin, Phone, Search, X, Monitor, ChevronDown, ChevronUp, ToggleLeft, ToggleRight } from 'lucide-react'
 import cinemaService from '../../services/cinemaService'
 
 const EMPTY_FORM = { name: '', address: '', phoneNumber: '', city: '', description: '' }
-const EMPTY_SCREEN = { name: '', rowCount: 8, seatsPerRow: 10, vipRows: 0 }
+const EMPTY_SCREEN = { name: '', rowCount: 8, seatsPerRow: 10, vipRows: 0, coupleRows: 0 }
+const EMPTY_EDIT_SCREEN = { name: '', rowCount: 8, seatsPerRow: 10, vipRows: 0, coupleRows: 0 }
 
 const CinemaManagement = () => {
   const [cinemas, setCinemas] = useState([])
@@ -22,6 +23,11 @@ const CinemaManagement = () => {
   const [showScreenModal, setShowScreenModal] = useState(false)
   const [screenForm, setScreenForm] = useState(EMPTY_SCREEN)
   const [savingScreen, setSavingScreen] = useState(false)
+
+  const [editingScreen, setEditingScreen] = useState(null)
+  const [showEditScreenModal, setShowEditScreenModal] = useState(false)
+  const [editScreenForm, setEditScreenForm] = useState(EMPTY_EDIT_SCREEN)
+  const [savingEditScreen, setSavingEditScreen] = useState(false)
 
   useEffect(() => { fetchCinemas() }, [])
 
@@ -61,13 +67,14 @@ const CinemaManagement = () => {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Xóa rạp này?')) return
+  const handleToggleCinema = async (cinema) => {
+    const action = cinema.active ? 'tạm dừng' : 'mở lại'
+    if (!window.confirm(`Bạn muốn ${action} rạp "${cinema.name}"?`)) return
     try {
-      await cinemaService.deleteCinema(id)
-      setCinemas(prev => prev.filter(c => c.id !== id))
+      const updated = await cinemaService.toggleCinemaActive(cinema.id)
+      setCinemas(prev => prev.map(c => c.id === updated.id ? { ...c, active: updated.active } : c))
     } catch {
-      alert('Xóa rạp thất bại')
+      alert('Thay đổi trạng thái rạp thất bại')
     }
   }
 
@@ -86,6 +93,49 @@ const CinemaManagement = () => {
 
   const closeScreenPanel = () => { setScreenCinema(null); setScreens([]) }
 
+  const handleToggleScreen = async (screen) => {
+    try {
+      const updated = await cinemaService.toggleScreenActive(screen.id)
+      setScreens(prev => prev.map(s => s.id === updated.id ? updated : s))
+    } catch {
+      alert('Không thể thay đổi trạng thái phòng chiếu')
+    }
+  }
+
+  const openEditScreen = (screen) => {
+    setEditingScreen(screen)
+    setEditScreenForm({
+      name: screen.name,
+      rowCount: screen.rowCount || 8,
+      seatsPerRow: screen.seatsPerRow || 10,
+      vipRows: 0,
+      coupleRows: 0,
+    })
+    setShowEditScreenModal(true)
+  }
+
+  const handleUpdateScreen = async () => {
+    if (!editScreenForm.name.trim()) return
+    setSavingEditScreen(true)
+    try {
+      const payload = {
+        name: editScreenForm.name,
+        rowCount: parseInt(editScreenForm.rowCount) || 8,
+        seatsPerRow: parseInt(editScreenForm.seatsPerRow) || 10,
+        vipRows: parseInt(editScreenForm.vipRows) || 0,
+        coupleRows: parseInt(editScreenForm.coupleRows) || 0,
+      }
+      const updated = await cinemaService.updateScreen(editingScreen.id, payload)
+      setScreens(prev => prev.map(s => s.id === updated.id ? updated : s))
+      setShowEditScreenModal(false)
+      setEditingScreen(null)
+    } catch {
+      alert('Cập nhật phòng chiếu thất bại')
+    } finally {
+      setSavingEditScreen(false)
+    }
+  }
+
   const handleAddScreen = async () => {
     if (!screenForm.name.trim()) return
     setSavingScreen(true)
@@ -95,6 +145,7 @@ const CinemaManagement = () => {
         rowCount: parseInt(screenForm.rowCount) || 8,
         seatsPerRow: parseInt(screenForm.seatsPerRow) || 10,
         vipRows: parseInt(screenForm.vipRows) || 0,
+        coupleRows: parseInt(screenForm.coupleRows) || 0,
       }
       const newScreen = await cinemaService.addScreen(screenCinema.id, payload)
       setScreens(prev => [...prev, newScreen])
@@ -161,7 +212,12 @@ const CinemaManagement = () => {
                         <Building2 className="w-5 h-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold">{cinema.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className={`text-white font-semibold ${cinema.active === false ? 'opacity-50' : ''}`}>{cinema.name}</h3>
+                          {cinema.active === false && (
+                            <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-xs">Tạm dừng</span>
+                          )}
+                        </div>
                         <span className="text-xs text-blue-400">{cinema.city}</span>
                       </div>
                     </div>
@@ -169,8 +225,8 @@ const CinemaManagement = () => {
                       <button onClick={() => openEdit(cinema)} className="p-1.5 text-gray-400 hover:text-cinema-gold hover:bg-cinema-gray-light rounded-lg transition-colors" title="Sửa rạp">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(cinema.id)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-cinema-gray-light rounded-lg transition-colors" title="Xóa rạp">
-                        <Trash2 className="w-4 h-4" />
+                      <button onClick={() => handleToggleCinema(cinema)} className={`p-1.5 hover:bg-cinema-gray-light rounded-lg transition-colors ${cinema.active === false ? 'text-green-400 hover:text-green-300' : 'text-yellow-400 hover:text-yellow-300'}`} title={cinema.active === false ? 'Mở lại rạp' : 'Tạm dừng rạp'}>
+                        {cinema.active === false ? <ToggleLeft className="w-5 h-5" /> : <ToggleRight className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
@@ -214,8 +270,21 @@ const CinemaManagement = () => {
                       ) : (
                         screens.map(s => (
                           <div key={s.id} className="flex items-center justify-between bg-cinema-gray-light rounded-lg px-3 py-2 text-sm">
-                            <span className="text-white font-medium">{s.name}</span>
-                            <span className="text-gray-400 text-xs">{s.totalSeats} ghế</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`text-white font-medium truncate ${s.active === false ? 'opacity-50' : ''}`}>{s.name}</span>
+                              {s.active === false && (
+                                <span className="shrink-0 px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-xs">Tạm dừng</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <span className="text-gray-400 text-xs">{s.totalSeats} ghế</span>
+                              <button onClick={() => openEditScreen(s)} className="p-1 text-gray-400 hover:text-cinema-gold rounded transition-colors" title="Đổi tên phòng">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => handleToggleScreen(s)} className={`p-1 rounded transition-colors ${s.active === false ? 'text-green-400 hover:text-green-300' : 'text-yellow-400 hover:text-yellow-300'}`} title={s.active === false ? 'Mở lại phòng' : 'Tạm dừng phòng'}>
+                                {s.active === false ? <ToggleLeft className="w-4 h-4" /> : <ToggleRight className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -315,6 +384,14 @@ const CinemaManagement = () => {
                   className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
                 />
               </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Số hàng Couple <span className="text-gray-500">(hàng cuối cùng)</span></label>
+                <input
+                  type="number" min={0} max={screenForm.rowCount}
+                  value={screenForm.coupleRows} onChange={e => setScreenForm(p => ({ ...p, coupleRows: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                />
+              </div>
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm">
                 <div className="flex justify-between text-gray-300">
                   <span>Tổng ghế:</span>
@@ -325,8 +402,12 @@ const CinemaManagement = () => {
                   <span>{parseInt(screenForm.vipRows || 0) * parseInt(screenForm.seatsPerRow || 0)} ghế</span>
                 </div>
                 <div className="flex justify-between text-gray-400 text-xs">
+                  <span>Ghế Couple:</span>
+                  <span>{parseInt(screenForm.coupleRows || 0) * parseInt(screenForm.seatsPerRow || 0)} ghế</span>
+                </div>
+                <div className="flex justify-between text-gray-400 text-xs">
                   <span>Ghế thường:</span>
-                  <span>{(parseInt(screenForm.rowCount || 0) - parseInt(screenForm.vipRows || 0)) * parseInt(screenForm.seatsPerRow || 0)} ghế</span>
+                  <span>{(parseInt(screenForm.rowCount || 0) - parseInt(screenForm.vipRows || 0) - parseInt(screenForm.coupleRows || 0)) * parseInt(screenForm.seatsPerRow || 0)} ghế</span>
                 </div>
               </div>
             </div>
@@ -334,6 +415,92 @@ const CinemaManagement = () => {
               <button onClick={() => setShowScreenModal(false)} className="flex-1 py-2.5 border border-cinema-gray-lighter text-gray-300 rounded-xl hover:bg-cinema-gray-light transition-colors">Hủy</button>
               <button onClick={handleAddScreen} disabled={savingScreen || !screenForm.name.trim()} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white rounded-xl font-semibold transition-colors">
                 {savingScreen ? 'Đang tạo...' : 'Tạo phòng'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditScreenModal && editingScreen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-cinema-gray rounded-2xl border border-cinema-gray-light w-full max-w-md">
+            <div className="flex justify-between items-center p-6 border-b border-cinema-gray-light">
+              <div>
+                <h2 className="text-xl font-bold text-white">Sửa phòng chiếu</h2>
+                <p className="text-gray-400 text-sm mt-0.5">{editingScreen.name}</p>
+              </div>
+              <button onClick={() => setShowEditScreenModal(false)}><X className="w-5 h-5 text-gray-400 hover:text-white" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-yellow-400 text-xs">
+                ⚠️ Thay đổi số hàng / ghế sẽ tạo lại toàn bộ ghế ngồi của phòng này.
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Tên phòng *</label>
+                <input
+                  type="text" placeholder="Phòng 1, Phòng IMAX..."
+                  value={editScreenForm.name} onChange={e => setEditScreenForm(p => ({ ...p, name: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Số hàng</label>
+                  <input
+                    type="number" min={1} max={26}
+                    value={editScreenForm.rowCount} onChange={e => setEditScreenForm(p => ({ ...p, rowCount: e.target.value }))}
+                    className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">Tối đa 26 hàng (A–Z)</p>
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Ghế mỗi hàng</label>
+                  <input
+                    type="number" min={1} max={30}
+                    value={editScreenForm.seatsPerRow} onChange={e => setEditScreenForm(p => ({ ...p, seatsPerRow: e.target.value }))}
+                    className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Số hàng VIP <span className="text-gray-500">(tính từ hàng A)</span></label>
+                <input
+                  type="number" min={0} max={editScreenForm.rowCount}
+                  value={editScreenForm.vipRows} onChange={e => setEditScreenForm(p => ({ ...p, vipRows: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Số hàng Couple <span className="text-gray-500">(hàng cuối cùng)</span></label>
+                <input
+                  type="number" min={0} max={editScreenForm.rowCount}
+                  value={editScreenForm.coupleRows} onChange={e => setEditScreenForm(p => ({ ...p, coupleRows: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                />
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm">
+                <div className="flex justify-between text-gray-300">
+                  <span>Tổng ghế mới:</span>
+                  <span className="font-semibold text-white">{parseInt(editScreenForm.rowCount || 0) * parseInt(editScreenForm.seatsPerRow || 0)} ghế</span>
+                </div>
+                <div className="flex justify-between text-gray-400 text-xs mt-1">
+                  <span>Ghế VIP:</span>
+                  <span>{parseInt(editScreenForm.vipRows || 0) * parseInt(editScreenForm.seatsPerRow || 0)} ghế</span>
+                </div>
+                <div className="flex justify-between text-gray-400 text-xs">
+                  <span>Ghế Couple:</span>
+                  <span>{parseInt(editScreenForm.coupleRows || 0) * parseInt(editScreenForm.seatsPerRow || 0)} ghế</span>
+                </div>
+                <div className="flex justify-between text-gray-400 text-xs">
+                  <span>Ghế thường:</span>
+                  <span>{(parseInt(editScreenForm.rowCount || 0) - parseInt(editScreenForm.vipRows || 0) - parseInt(editScreenForm.coupleRows || 0)) * parseInt(editScreenForm.seatsPerRow || 0)} ghế</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button onClick={() => setShowEditScreenModal(false)} className="flex-1 py-2.5 border border-cinema-gray-lighter text-gray-300 rounded-xl hover:bg-cinema-gray-light transition-colors">Hủy</button>
+              <button onClick={handleUpdateScreen} disabled={savingEditScreen || !editScreenForm.name.trim()} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white rounded-xl font-semibold transition-colors">
+                {savingEditScreen ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>
           </div>

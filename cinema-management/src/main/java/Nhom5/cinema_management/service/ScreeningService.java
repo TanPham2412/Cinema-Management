@@ -52,6 +52,14 @@ public class ScreeningService {
                 .toList();
     }
 
+    public List<ScreeningDTO> getTodayScreenings() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+        return screeningRepository.findTodayScreenings(start, end)
+                .stream().map(ScreeningDTO::fromEntity).toList();
+    }
+
     public List<ScreeningDTO> getAllScreenings() {
         return screeningRepository.findAll().stream()
                 .map(ScreeningDTO::fromEntity).toList();
@@ -179,6 +187,18 @@ public class ScreeningService {
     public ScreeningDTO updateScreening(Long id, Map<String, Object> body) {
         Screening screening = screeningRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Screening not found: " + id));
+        if (body.containsKey("startTime")) {
+            LocalDateTime newStart = LocalDateTime.parse(body.get("startTime").toString());
+            int duration = screening.getMovie().getDuration() != null ? screening.getMovie().getDuration() : 90;
+            LocalDateTime newEnd = newStart.plusMinutes(duration + 15);
+            List<Screening> conflicts = screeningRepository.findConflictingScreeningsExcluding(
+                    screening.getScreen().getId(), id, newStart, newEnd);
+            if (!conflicts.isEmpty()) {
+                throw new IllegalStateException("Phòng chiếu đã có suất chiếu khác trong khung giờ này");
+            }
+            screening.setStartTime(newStart);
+            screening.setEndTime(newEnd);
+        }
         if (body.containsKey("basePrice")) {
             screening.setBasePrice(Double.parseDouble(body.get("basePrice").toString()));
         }

@@ -16,6 +16,8 @@ const TIER_COLORS = {
   PLATINUM: 'text-blue-300',
 }
 
+const EMPTY_EDIT = { fullName: '', phoneNumber: '', role: 'CUSTOMER' }
+
 const UserManagement = () => {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +27,9 @@ const UserManagement = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [error, setError] = useState('')
   const [total, setTotal] = useState(0)
-  const [editRoleUser, setEditRoleUser] = useState(null)
+  const [editUser, setEditUser] = useState(null)   // user object being edited
+  const [editForm, setEditForm] = useState(EMPTY_EDIT)
+  const [saving, setSaving] = useState(false)
   const pageSize = 15
 
   useEffect(() => { fetchUsers() }, [page, roleFilter])
@@ -61,12 +65,23 @@ const UserManagement = () => {
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, enabled: !u.enabled } : u))
   }
 
-  const changeRole = async (userId, newRole) => {
+  const openEdit = (user) => {
+    setEditUser(user)
+    setEditForm({ fullName: user.fullName || '', phoneNumber: user.phoneNumber || '', role: user.role || 'CUSTOMER' })
+  }
+
+  const saveUserEdit = async () => {
+    if (!editUser) return
+    setSaving(true)
     try {
-      await api.put(`/admin/users/${userId}/role`, { role: newRole })
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
-    } catch {}
-    setEditRoleUser(null)
+      const res = await api.put(`/admin/users/${editUser.id}`, editForm)
+      setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...res.data } : u))
+      setEditUser(null)
+    } catch {
+      alert('Lưu thất bại. Vui lòng thử lại.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const formatDate = (dateStr) => {
@@ -169,9 +184,9 @@ const UserManagement = () => {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {user.role !== 'ADMIN' && (
-                            <button onClick={() => setEditRoleUser(editRoleUser?.id === user.id ? null : user)}
+                            <button onClick={() => openEdit(user)}
                               className="p-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-cinema-gray-light transition-colors"
-                              title="Đổi vai trò">
+                              title="Sửa thông tin">
                               <Edit2 className="w-4 h-4" />
                             </button>
                           )}
@@ -183,17 +198,6 @@ const UserManagement = () => {
                             </button>
                           )}
                         </div>
-                        {/* Inline role picker */}
-                        {editRoleUser?.id === user.id && (
-                          <div className="mt-2 flex gap-1 justify-end">
-                            {['CUSTOMER', 'STAFF'].map(r => (
-                              <button key={r} onClick={() => changeRole(user.id, r)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${user.role === r ? 'bg-cinema-red text-white' : 'bg-cinema-gray-light text-gray-300 hover:bg-cinema-gray-lighter'}`}>
-                                {r === 'CUSTOMER' ? 'Khách' : 'Nhân viên'}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </td>
                     </tr>
                   )
@@ -214,6 +218,58 @@ const UserManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Edit User Modal */}
+      {editUser && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-cinema-gray rounded-xl border border-cinema-gray-light w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-cinema-gray-light">
+              <h3 className="text-lg font-semibold text-white">Sửa thông tin người dùng</h3>
+              <button onClick={() => setEditUser(null)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <div className="text-xs text-gray-400 mb-1">Email (không thể sửa)</div>
+                <div className="px-3 py-2 bg-cinema-darker/50 rounded-lg text-gray-400 text-sm">{editUser.email}</div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Họ và tên</label>
+                <input type="text" value={editForm.fullName}
+                  onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))}
+                  className="w-full px-3 py-2 bg-cinema-darker border border-cinema-gray-light text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm"
+                  placeholder="Nhập họ và tên" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Số điện thoại</label>
+                <input type="text" value={editForm.phoneNumber}
+                  onChange={e => setEditForm(f => ({ ...f, phoneNumber: e.target.value }))}
+                  className="w-full px-3 py-2 bg-cinema-darker border border-cinema-gray-light text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm"
+                  placeholder="Nhập số điện thoại" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Vai trò</label>
+                <select value={editForm.role}
+                  onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                  className="w-full px-3 py-2 bg-cinema-darker border border-cinema-gray-light text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm">
+                  <option value="CUSTOMER">Khách hàng</option>
+                  <option value="STAFF">Nhân viên</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-cinema-gray-light">
+              <button onClick={() => setEditUser(null)}
+                className="flex-1 px-4 py-2 bg-cinema-gray-light text-gray-300 rounded-lg hover:bg-cinema-gray-lighter text-sm">
+                Hủy
+              </button>
+              <button onClick={saveUserEdit} disabled={saving}
+                className="flex-1 px-4 py-2 bg-cinema-red text-white rounded-lg hover:bg-cinema-red-dark text-sm disabled:opacity-50">
+                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

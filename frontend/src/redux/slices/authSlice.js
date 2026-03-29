@@ -57,6 +57,9 @@ export const authSlice = createSlice({
       state.user = action.payload.user
       state.token = action.payload.token
       state.isSuccess = true
+      // Persist to localStorage so the session survives page reloads
+      if (action.payload.token) localStorage.setItem('token', action.payload.token)
+      if (action.payload.user) localStorage.setItem('user', JSON.stringify(action.payload.user))
     },
   },
   extraReducers: (builder) => {

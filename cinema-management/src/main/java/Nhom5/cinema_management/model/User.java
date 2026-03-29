@@ -73,6 +73,14 @@ public class User implements UserDetails {
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Booking> bookings;
+
+    // 2FA fields
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean twoFactorEnabled = false;
+
+    @Column
+    private String twoFactorSecret;
     
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

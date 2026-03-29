@@ -39,6 +39,11 @@ public class ScreeningController {
         return ResponseEntity.ok(screeningService.getAllScreenings());
     }
 
+    @GetMapping("/today")
+    public ResponseEntity<List<ScreeningDTO>> getTodayScreenings() {
+        return ResponseEntity.ok(screeningService.getTodayScreenings());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ScreeningDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(screeningService.getScreeningById(id));

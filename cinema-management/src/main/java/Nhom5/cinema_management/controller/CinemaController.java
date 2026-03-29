@@ -76,10 +76,29 @@ public class CinemaController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/admin/{id}/toggle-active")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CinemaDTO> toggleCinemaActive(@PathVariable Long id) {
+        return ResponseEntity.ok(cinemaService.toggleCinemaActive(id));
+    }
+
     @PostMapping("/admin/{cinemaId}/screens")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ScreenDTO> addScreen(@PathVariable Long cinemaId,
                                                 @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(cinemaService.addScreen(cinemaId, body));
+    }
+
+    @PutMapping("/admin/screens/{screenId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ScreenDTO> updateScreen(@PathVariable Long screenId,
+                                                   @RequestBody Map<String, Object> body) {
+        return ResponseEntity.ok(cinemaService.updateScreen(screenId, body));
+    }
+
+    @PutMapping("/admin/screens/{screenId}/toggle-active")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ScreenDTO> toggleScreenActive(@PathVariable Long screenId) {
+        return ResponseEntity.ok(cinemaService.toggleScreenActive(screenId));
     }
 }

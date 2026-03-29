@@ -118,6 +118,13 @@
 			<version>3.2.0</version>
 		</dependency>
 
+		<!-- TOTP (Google Authenticator 2FA) -->
+		<dependency>
+			<groupId>dev.samstevens.totp</groupId>
+			<artifactId>totp</artifactId>
+			<version>1.7.1</version>
+		</dependency>
+
 		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

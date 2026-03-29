@@ -60,6 +60,7 @@ public class Payment {
     
     public enum PaymentMethod {
         CASH,           // Tiền mặt (tại quầy)
+        BANK_TRANSFER,  // Chuyển khoản ngân hàng
         VNPAY,          // VNPAY
         MOMO,           // MoMo
         CREDIT_CARD,    // Thẻ tín dụng

@@ -23,6 +23,7 @@ public class ScreenDTO {
     private Integer totalSeats;
     private Integer rowCount;
     private Integer seatsPerRow;
+    private Boolean active;
     private List<SeatDTO> seats;
 
     public static ScreenDTO fromEntity(Screen screen) {
@@ -34,6 +35,7 @@ public class ScreenDTO {
                 .totalSeats(screen.getTotalSeats())
                 .rowCount(screen.getRowCount())
                 .seatsPerRow(screen.getSeatsPerRow())
+                .active(screen.getActive() != null ? screen.getActive() : true)
                 .build();
     }
 

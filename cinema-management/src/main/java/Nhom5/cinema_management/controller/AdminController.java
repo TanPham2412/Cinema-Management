@@ -122,6 +122,33 @@ public class AdminController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/users/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return userRepository.findById(id).map(user -> {
+            if (body.containsKey("fullName")) {
+                String fullName = (String) body.get("fullName");
+                if (fullName != null && !fullName.isBlank()) user.setFullName(fullName.trim());
+            }
+            if (body.containsKey("phoneNumber")) {
+                user.setPhoneNumber((String) body.get("phoneNumber"));
+            }
+            if (body.containsKey("role")) {
+                try { user.setRole(User.Role.valueOf((String) body.get("role"))); } catch (Exception ignored) {}
+            }
+            userRepository.save(user);
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", user.getId());
+            m.put("fullName", user.getFullName());
+            m.put("email", user.getEmail());
+            m.put("phoneNumber", user.getPhoneNumber());
+            m.put("role", user.getRole().name());
+            m.put("enabled", user.isEnabled());
+            m.put("membershipTier", user.getMembershipTier().name());
+            m.put("loyaltyPoints", user.getLoyaltyPoints());
+            return ResponseEntity.ok(m);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     // ── Bookings ──────────────────────────────────────────────────────────
 
     @GetMapping("/bookings")

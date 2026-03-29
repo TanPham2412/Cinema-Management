@@ -46,7 +46,11 @@ public class Screen {
     
     @Column(nullable = false)
     private Integer seatsPerRow;
-    
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
+
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
     private List<Seat> seats;
     

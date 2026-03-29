@@ -15,4 +15,23 @@ const ProtectedRoute = ({ children, roles }) => {
   return children
 }
 
+// Chỉ cho phép USER truy cập — admin/staff bị redirect về dashboard của họ
+export const UserOnlyRoute = ({ children }) => {
+  const { user } = useSelector((state) => state.auth)
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (user.role === 'ADMIN') {
+    return <Navigate to="/admin" replace />
+  }
+
+  if (user.role === 'STAFF') {
+    return <Navigate to="/staff" replace />
+  }
+
+  return children
+}
+
 export default ProtectedRoute

@@ -20,10 +20,11 @@ import UserManagement from './pages/admin/UserManagement'
 import BookingManagement from './pages/admin/BookingManagement'
 import RevenueManagement from './pages/admin/RevenueManagement'
 import StaffDashboard from './pages/staff/StaffDashboard'
+import StaffBookingPage from './pages/staff/StaffBookingPage'
 import ScreeningSelectionPage from './pages/ScreeningSelectionPage'
 import CinemasPage from './pages/CinemasPage'
 import CinemaDetailPage from './pages/CinemaDetailPage'
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute, { UserOnlyRoute } from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
 
 function App() {
@@ -38,21 +39,21 @@ function App() {
           <Route path="movies/:id/screenings" element={<ScreeningSelectionPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="cinemas/:id" element={<CinemaDetailPage />} />
-          <Route path="booking/:screeningId" element={<BookingPage />} />
-          <Route path="booking/confirm" element={<BookingConfirmPage />} />
-          <Route path="payment/vnpay/result" element={<VNPayReturnPage />} />
-          <Route path="payment/momo/result" element={<MoMoReturnPage />} />
+          <Route path="booking/:screeningId" element={<UserOnlyRoute><BookingPage /></UserOnlyRoute>} />
+          <Route path="booking/confirm" element={<UserOnlyRoute><BookingConfirmPage /></UserOnlyRoute>} />
+          <Route path="payment/vnpay/result" element={<UserOnlyRoute><VNPayReturnPage /></UserOnlyRoute>} />
+          <Route path="payment/momo/result" element={<UserOnlyRoute><MoMoReturnPage /></UserOnlyRoute>} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="auth/google/callback" element={<OAuth2RedirectHandler />} />
           
-          {/* Protected Routes */}
+          {/* Protected Routes - User only */}
           <Route
             path="profile"
             element={
-              <ProtectedRoute>
+              <UserOnlyRoute>
                 <ProfilePage />
-              </ProtectedRoute>
+              </UserOnlyRoute>
             }
           />
           
@@ -123,6 +124,14 @@ function App() {
           />
           
           {/* Staff Routes */}
+          <Route
+            path="staff/booking/:screeningId"
+            element={
+              <ProtectedRoute roles={['STAFF', 'ADMIN']}>
+                <StaffBookingPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="staff/*"
             element={

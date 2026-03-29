@@ -1,47 +1,85 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Ticket, QrCode, Search, Film, Clock, Users, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Ticket, QrCode, Search, Film, Clock, Users, CheckCircle, XCircle } from 'lucide-react'
 import api from '../../services/api'
 import movieService from '../../services/movieService'
+
+const formatTime = (isoOrTime) => {
+  if (!isoOrTime) return ''
+  if (isoOrTime.includes('T')) {
+    return isoOrTime.substring(11, 16)
+  }
+  return isoOrTime
+}
 
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('sell') // sell | checkin | stats
   const [movies, setMovies] = useState([])
-  const [screenings, setScreenings] = useState([])
+  const [todayScreenings, setTodayScreenings] = useState([])
+  const [movieScreenings, setMovieScreenings] = useState([])
+  const [movieScreeningsLoading, setMovieScreeningsLoading] = useState(false)
   const [searchMovie, setSearchMovie] = useState('')
   const [selectedMovie, setSelectedMovie] = useState(null)
   const [qrInput, setQrInput] = useState('')
   const [qrResult, setQrResult] = useState(null)
   const [checking, setChecking] = useState(false)
-  const [todayStats, setTodayStats] = useState({ sold: 42, checkedIn: 31, revenue: 3_780_000, upcoming: 5 })
-  const [error, setError] = useState('')
+  const [todayStats, setTodayStats] = useState({ sold: 0, checkedIn: 0, revenue: 0, upcoming: 0 })
+  const [statsLoading, setStatsLoading] = useState(true)
 
   useEffect(() => {
-    fetchData()
+    fetchMovies()
+    fetchTodayScreenings()
+    fetchTodayStats()
   }, [])
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (selectedMovie) {
+      fetchMovieScreenings(selectedMovie.id)
+    } else {
+      setMovieScreenings([])
+    }
+  }, [selectedMovie])
+
+  const fetchMovies = async () => {
     try {
       const data = await movieService.getNowShowing()
-      setMovies(data || [])
+      setMovies(Array.isArray(data) ? data : [])
     } catch {
-      setError('API đang phát triển — hiển thị demo')
-      setMovies([
-        { id: 1, title: 'Avengers: Endgame', duration: 181, posterUrl: null },
-        { id: 2, title: 'Spider-Man: NWH', duration: 148, posterUrl: null },
-        { id: 3, title: 'The Batman', duration: 176, posterUrl: null },
-      ])
+      setMovies([])
     }
+  }
+
+  const fetchTodayScreenings = async () => {
     try {
       const res = await api.get('/screenings/today')
-      setScreenings(res.data || [])
+      setTodayScreenings(res.data || [])
     } catch {
-      setScreenings([
-        { id: 1, movieTitle: 'Avengers: Endgame', startTime: '10:00', screenName: 'Phòng 1', availableSeats: 45, basePrice: 90000 },
-        { id: 2, movieTitle: 'Spider-Man: NWH', startTime: '13:30', screenName: 'Phòng 2', availableSeats: 28, basePrice: 100000 },
-        { id: 3, movieTitle: 'The Batman', startTime: '16:00', screenName: 'Phòng 1', availableSeats: 60, basePrice: 90000 },
-        { id: 4, movieTitle: 'Avengers: Endgame', startTime: '19:30', screenName: 'Phòng 3', availableSeats: 80, basePrice: 110000 },
-      ])
+      setTodayScreenings([])
+    }
+  }
+
+  const fetchMovieScreenings = async (movieId) => {
+    setMovieScreeningsLoading(true)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const res = await api.get(`/screenings/movie/${movieId}`, { params: { date: today } })
+      setMovieScreenings(res.data || [])
+    } catch {
+      setMovieScreenings([])
+    } finally {
+      setMovieScreeningsLoading(false)
+    }
+  }
+
+  const fetchTodayStats = async () => {
+    setStatsLoading(true)
+    try {
+      const res = await api.get('/staff/stats/today')
+      setTodayStats(res.data)
+    } catch {
+      setTodayStats({ sold: 0, checkedIn: 0, revenue: 0, upcoming: 0 })
+    } finally {
+      setStatsLoading(false)
     }
   }
 
@@ -54,24 +92,14 @@ const StaffDashboard = () => {
       setQrResult({ success: true, data: res.data })
     } catch (e) {
       const msg = e.response?.data?.message
-      if (msg) {
-        setQrResult({ success: false, message: msg })
-      } else {
-        // Demo
-        setQrResult({
-          success: true,
-          data: { bookingCode: qrInput, customerName: 'Nguyễn Văn Demo', movieTitle: 'Avengers: Endgame', screeningTime: '19:30', seats: ['D5', 'D6'], status: 'CONFIRMED' }
-        })
-      }
+      setQrResult({ success: false, message: msg || 'Không tìm thấy vé hoặc vé không hợp lệ' })
     } finally {
       setChecking(false)
     }
   }
 
   const filteredMovies = movies.filter(m => m.title.toLowerCase().includes(searchMovie.toLowerCase()))
-  const filteredScreenings = selectedMovie
-    ? screenings.filter(s => s.movieTitle === selectedMovie.title)
-    : screenings
+
 
   return (
     <div className="min-h-screen bg-cinema-darker">
@@ -101,12 +129,6 @@ const StaffDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        {error && (
-          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-yellow-400 text-sm flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-          </div>
-        )}
-
         {/* Tab: Bán vé */}
         {activeTab === 'sell' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -121,6 +143,9 @@ const StaffDashboard = () => {
                   className="w-full pl-9 pr-3 py-2 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm" />
               </div>
               <div className="space-y-2 max-h-72 overflow-y-auto">
+                {filteredMovies.length === 0 && (
+                  <div className="text-center py-6 text-gray-500 text-sm">Không có phim đang chiếu</div>
+                )}
                 {filteredMovies.map(m => (
                   <button key={m.id} onClick={() => setSelectedMovie(m)}
                     className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors text-sm border ${selectedMovie?.id === m.id ? 'bg-cinema-red/20 border-cinema-red text-white' : 'bg-cinema-gray-light border-cinema-gray-lighter text-gray-300 hover:border-cinema-red/50'}`}>
@@ -138,20 +163,22 @@ const StaffDashboard = () => {
               </h2>
               {!selectedMovie ? (
                 <div className="text-center py-10 text-gray-500 text-sm">Chọn phim trước</div>
+              ) : movieScreeningsLoading ? (
+                <div className="text-center py-10 text-gray-500 text-sm">Đang tải...</div>
               ) : (
                 <div className="space-y-2">
-                  {filteredScreenings.length === 0 ? (
+                  {movieScreenings.length === 0 ? (
                     <div className="text-center py-10 text-gray-500 text-sm">Không có suất chiếu hôm nay</div>
                   ) : (
-                    filteredScreenings.map(s => (
-                      <Link key={s.id} to={`/booking/${s.id}`}
+                    movieScreenings.map(s => (
+                      <Link key={s.id} to={`/staff/booking/${s.id}`}
                         className="block w-full text-left px-3 py-3 rounded-lg bg-cinema-gray-light border border-cinema-gray-lighter hover:border-cinema-gold transition-colors">
                         <div className="flex justify-between">
-                          <span className="text-white font-semibold text-lg">{s.startTime}</span>
+                          <span className="text-white font-semibold text-lg">{formatTime(s.startTime)}</span>
                           <span className="text-cinema-gold font-semibold">{s.basePrice?.toLocaleString()}đ</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400 text-xs mt-1">
-                          <span>{s.screenName}</span>
+                          <span>{s.cinemaName} — {s.screenName}</span>
                           <span>•</span>
                           <span className={s.availableSeats > 20 ? 'text-green-400' : s.availableSeats > 0 ? 'text-yellow-400' : 'text-red-400'}>
                             {s.availableSeats} ghế trống
@@ -252,10 +279,10 @@ const StaffDashboard = () => {
           <div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { label: 'Vé đã bán', value: todayStats.sold, icon: Ticket, color: 'text-cinema-red', bg: 'bg-cinema-red/10' },
-                { label: 'Lượt soát vé', value: todayStats.checkedIn, icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
-                { label: 'Doanh thu', value: todayStats.revenue.toLocaleString() + 'đ', icon: Film, color: 'text-cinema-gold', bg: 'bg-cinema-gold/10' },
-                { label: 'Suất sắp chiếu', value: todayStats.upcoming, icon: Clock, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+                { label: 'Vé đã bán', value: statsLoading ? '...' : todayStats.sold, icon: Ticket, color: 'text-cinema-red', bg: 'bg-cinema-red/10' },
+                { label: 'Lượt soát vé', value: statsLoading ? '...' : todayStats.checkedIn, icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-400/10' },
+                { label: 'Doanh thu', value: statsLoading ? '...' : (Number(todayStats.revenue) || 0).toLocaleString() + 'đ', icon: Film, color: 'text-cinema-gold', bg: 'bg-cinema-gold/10' },
+                { label: 'Suất sắp chiếu', value: statsLoading ? '...' : todayStats.upcoming, icon: Clock, color: 'text-blue-400', bg: 'bg-blue-400/10' },
               ].map(s => {
                 const Icon = s.icon
                 return (
@@ -275,20 +302,24 @@ const StaffDashboard = () => {
               <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-cinema-gold" /> Suất chiếu hôm nay
               </h3>
-              <div className="space-y-2">
-                {screenings.map(s => (
-                  <div key={s.id} className="flex items-center gap-4 p-3 bg-cinema-gray-light rounded-lg">
-                    <span className="text-cinema-gold font-bold w-12">{s.startTime}</span>
-                    <div className="flex-1">
-                      <div className="text-white text-sm font-medium">{s.movieTitle}</div>
-                      <div className="text-gray-500 text-xs">{s.screenName}</div>
+              {todayScreenings.length === 0 ? (
+                <div className="text-center py-6 text-gray-500 text-sm">Không có suất chiếu hôm nay</div>
+              ) : (
+                <div className="space-y-2">
+                  {todayScreenings.map(s => (
+                    <div key={s.id} className="flex items-center gap-4 p-3 bg-cinema-gray-light rounded-lg">
+                      <span className="text-cinema-gold font-bold w-14">{formatTime(s.startTime)}</span>
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">{s.movieTitle}</div>
+                        <div className="text-gray-500 text-xs">{s.cinemaName} — {s.screenName}</div>
+                      </div>
+                      <span className={`text-sm font-semibold ${s.availableSeats > 20 ? 'text-green-400' : s.availableSeats > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {s.availableSeats} ghế
+                      </span>
                     </div>
-                    <span className={`text-sm font-semibold ${s.availableSeats > 20 ? 'text-green-400' : s.availableSeats > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                      {s.availableSeats} ghế
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

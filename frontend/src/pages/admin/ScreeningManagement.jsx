@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Calendar, Clock, Monitor, Film, Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Plus, Calendar, Clock, Monitor, Film, Search, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
 import screeningService from '../../services/screeningService'
 import movieService from '../../services/movieService'
 import cinemaService from '../../services/cinemaService'
@@ -27,6 +27,9 @@ const ScreeningManagement = () => {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [editScreening, setEditScreening] = useState(null)
+  const [editForm, setEditForm] = useState({ startTime: '', basePrice: 90000, priceCategory: 'NORMAL' })
+  const [editSaving, setEditSaving] = useState(false)
   const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 10))
   const [page, setPage] = useState(0)
   const pageSize = 10
@@ -96,6 +99,31 @@ const ScreeningManagement = () => {
       setScreenings(prev => prev.filter(s => s.id !== id))
     } catch {
       alert('Hủy suất chiếu thất bại')
+    }
+  }
+
+  const openEdit = (s) => {
+    // Convert ISO startTime to datetime-local format (strip seconds)
+    const local = s.startTime ? s.startTime.slice(0, 16) : ''
+    setEditForm({ startTime: local, basePrice: s.basePrice || 90000, priceCategory: s.priceCategory || 'NORMAL' })
+    setEditScreening(s)
+  }
+
+  const handleUpdate = async () => {
+    if (!editScreening) return
+    setEditSaving(true)
+    try {
+      const updated = await screeningService.updateScreening(editScreening.id, {
+        startTime: editForm.startTime,
+        basePrice: editForm.basePrice,
+        priceCategory: editForm.priceCategory,
+      })
+      setScreenings(prev => prev.map(s => s.id === editScreening.id ? updated : s))
+      setEditScreening(null)
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Cập nhật thất bại')
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -202,9 +230,14 @@ const ScreeningManagement = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-300">{s.availableSeats ?? '—'}</td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => handleDelete(s.id)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-cinema-gray-light rounded-lg transition-colors">
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEdit(s)} className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-cinema-gray-light rounded-lg transition-colors" title="Sửa suất chiếu">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDelete(s.id)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-cinema-gray-light rounded-lg transition-colors" title="Hủy suất chiếu">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -225,6 +258,53 @@ const ScreeningManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editScreening && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-cinema-gray rounded-2xl border border-cinema-gray-light w-full max-w-md">
+            <div className="flex justify-between items-center p-6 border-b border-cinema-gray-light">
+              <h2 className="text-xl font-bold text-white">Sửa suất chiếu</h2>
+              <button onClick={() => setEditScreening(null)}><X className="w-5 h-5 text-gray-400 hover:text-white" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-cinema-gray-light rounded-lg px-4 py-3 text-sm">
+                <div className="text-white font-medium">{editScreening.movieTitle}</div>
+                <div className="text-gray-400 text-xs mt-0.5">{editScreening.cinemaName} • {editScreening.screenName}</div>
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Thời gian chiếu *</label>
+                <input type="datetime-local" value={editForm.startTime}
+                  onChange={e => setEditForm(p => ({ ...p, startTime: e.target.value }))}
+                  className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Giá vé cơ bản (đ)</label>
+                  <input type="number" value={editForm.basePrice}
+                    onChange={e => setEditForm(p => ({ ...p, basePrice: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm" />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1">Loại giờ</label>
+                  <select value={editForm.priceCategory}
+                    onChange={e => setEditForm(p => ({ ...p, priceCategory: e.target.value }))}
+                    className="w-full px-3 py-2.5 bg-cinema-gray-light border border-cinema-gray-lighter text-white rounded-lg focus:outline-none focus:border-cinema-red text-sm">
+                    {PRICE_CATEGORIES.map(pc => <option key={pc.value} value={pc.value}>{pc.label}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button onClick={() => setEditScreening(null)} className="flex-1 py-2.5 border border-cinema-gray-lighter text-gray-300 rounded-xl hover:bg-cinema-gray-light transition-colors">Hủy</button>
+              <button onClick={handleUpdate} disabled={editSaving || !editForm.startTime}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white rounded-xl font-semibold transition-colors">
+                {editSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Modal */}
       {showModal && (

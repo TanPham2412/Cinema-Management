@@ -135,6 +135,7 @@ const MoviesPage = () => {
           keyword: keyword || undefined,
           genreId: selectedGenre || undefined,
           language: selectedLanguage || undefined,
+          excludeEnded: true,
           page, size: 12, sortBy: 'releaseDate', sortDirection: 'DESC',
         })
         setMovies(res.content || [])

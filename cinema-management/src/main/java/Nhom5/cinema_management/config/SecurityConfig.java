@@ -58,7 +58,7 @@ public class SecurityConfig {
                 // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
                 // Public POST for login/register
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify").permitAll()
                 // VNPay endpoints - return, callback & IPN must be public
                 .requestMatchers("/payment/vnpay/return", "/payment/vnpay/callback", "/payment/vnpay/ipn").permitAll()
                 // MoMo endpoints - return & notify must be public

@@ -85,6 +85,15 @@ public class CinemaService {
     }
 
     @Transactional
+    public CinemaDTO toggleCinemaActive(Long id) {
+        Cinema cinema = cinemaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Cinema not found: " + id));
+        cinema.setActive(cinema.getActive() == null || !cinema.getActive());
+        cinemaRepository.save(cinema);
+        return CinemaDTO.fromEntity(cinema);
+    }
+
+    @Transactional
     public void deleteCinema(Long id) {
         Cinema cinema = cinemaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Cinema not found: " + id));
@@ -111,13 +120,20 @@ public class CinemaService {
                 .build();
 
         // Auto-generate seats
-        String seatTypeStr = body.getOrDefault("vipRows", "0").toString();
-        int vipRows = Integer.parseInt(seatTypeStr);
-
+        int vipRows = Integer.parseInt(body.getOrDefault("vipRows", "0").toString());
+        int coupleRows = Integer.parseInt(body.getOrDefault("coupleRows", "0").toString());
+        // VIP rows start from the front (row A+), couple rows occupy the last N rows
         List<Seat> seats = new ArrayList<>();
         for (int r = 0; r < rowCount; r++) {
             String rowLabel = String.valueOf((char) ('A' + r));
-            Seat.SeatType type = r < vipRows ? Seat.SeatType.VIP : Seat.SeatType.REGULAR;
+            Seat.SeatType type;
+            if (r < vipRows) {
+                type = Seat.SeatType.VIP;
+            } else if (r >= rowCount - coupleRows) {
+                type = Seat.SeatType.COUPLE;
+            } else {
+                type = Seat.SeatType.REGULAR;
+            }
             for (int n = 1; n <= seatsPerRow; n++) {
                 seats.add(Seat.builder()
                         .screen(screen)
@@ -138,5 +154,66 @@ public class CinemaService {
                 .filter(s -> s.getName().equals(screen.getName()))
                 .reduce((a, b) -> b).orElse(screen);
         return ScreenDTO.fromEntity(saved);
+    }
+
+    @Transactional
+    public ScreenDTO toggleScreenActive(Long screenId) {
+        Screen screen = screenRepository.findById(screenId)
+                .orElseThrow(() -> new EntityNotFoundException("Screen not found: " + screenId));
+        screen.setActive(screen.getActive() == null || !screen.getActive());
+        screenRepository.save(screen);
+        return ScreenDTO.fromEntity(screen);
+    }
+
+    @Transactional
+    public ScreenDTO updateScreen(Long screenId, Map<String, Object> body) {
+        Screen screen = screenRepository.findById(screenId)
+                .orElseThrow(() -> new EntityNotFoundException("Screen not found: " + screenId));
+
+        if (body.containsKey("name")) {
+            screen.setName((String) body.get("name"));
+        }
+
+        // If layout fields are provided, rebuild seats
+        if (body.containsKey("rowCount") && body.containsKey("seatsPerRow")) {
+            int rowCount = ((Number) body.get("rowCount")).intValue();
+            int seatsPerRow = ((Number) body.get("seatsPerRow")).intValue();
+            int vipRows = body.containsKey("vipRows") ? ((Number) body.get("vipRows")).intValue() : 0;
+            int coupleRows = body.containsKey("coupleRows") ? ((Number) body.get("coupleRows")).intValue() : 0;
+
+            screen.setRowCount(rowCount);
+            screen.setSeatsPerRow(seatsPerRow);
+            screen.setTotalSeats(rowCount * seatsPerRow);
+
+            // Clear old seats and regenerate
+            screen.getSeats().clear();
+            seatRepository.deleteAllByScreenId(screenId);
+
+            List<Seat> newSeats = new ArrayList<>();
+            for (int r = 0; r < rowCount; r++) {
+                String rowLabel = String.valueOf((char) ('A' + r));
+                Seat.SeatType type;
+                if (r < vipRows) {
+                    type = Seat.SeatType.VIP;
+                } else if (r >= rowCount - coupleRows) {
+                    type = Seat.SeatType.COUPLE;
+                } else {
+                    type = Seat.SeatType.REGULAR;
+                }
+                for (int n = 1; n <= seatsPerRow; n++) {
+                    newSeats.add(Seat.builder()
+                            .screen(screen)
+                            .seatRow(rowLabel)
+                            .seatNumber(n)
+                            .seatType(type)
+                            .available(true)
+                            .build());
+                }
+            }
+            screen.getSeats().addAll(newSeats);
+        }
+
+        screenRepository.save(screen);
+        return ScreenDTO.fromEntity(screen);
     }
 }

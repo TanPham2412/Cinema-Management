@@ -13,6 +13,7 @@ public class BookingResponseDTO {
     private String bookingCode;
     private Long userId;
     private String userName;
+    private String customerEmail;
     private Long screeningId;
     private String movieTitle;
     private String cinemaName;
@@ -41,6 +42,7 @@ public class BookingResponseDTO {
         dto.setBookingCode(b.getBookingCode());
         dto.setUserId(b.getUser().getId());
         dto.setUserName(b.getUser().getFullName());
+        dto.setCustomerEmail(b.getUser().getEmail());
         dto.setScreeningId(b.getScreening().getId());
         dto.setMovieTitle(b.getScreening().getMovie().getTitle());
         dto.setCinemaName(b.getScreening().getScreen().getCinema().getName());

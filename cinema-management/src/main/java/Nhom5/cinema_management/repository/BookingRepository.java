@@ -14,7 +14,8 @@ import Nhom5.cinema_management.model.Booking;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingCode(String bookingCode);
-    List<Booking> findByUserId(Long userId);
+    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId ORDER BY b.bookingTime DESC")
+    List<Booking> findByUserIdOrderByBookingTimeDesc(@Param("userId") Long userId);
     List<Booking> findByStatusAndExpiryTimeBefore(Booking.BookingStatus status, LocalDateTime expiryTime);
 
     /** Eagerly loads bookingSeats + seat to avoid LazyInitializationException in WS broadcasts. */
@@ -29,6 +30,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED')")
     Double sumTotalRevenue();
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.bookingTime >= :startOfDay AND b.bookingTime < :endOfDay")
+    Long countTodaySold(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = 'COMPLETED' AND b.bookingTime >= :startOfDay AND b.bookingTime < :endOfDay")
+    Long countTodayCheckedIn(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.bookingTime >= :startOfDay AND b.bookingTime < :endOfDay")
+    Double sumTodayRevenue(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED')")
     Long countConfirmedAndCompleted();

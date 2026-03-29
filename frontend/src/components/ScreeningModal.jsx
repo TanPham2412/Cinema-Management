@@ -1,7 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, MapPin, ChevronLeft, Clock, Ticket, Users } from 'lucide-react';
-import cinemaService from '../services/cinemaService';
 import screeningService from '../services/screeningService';
 
 const DAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -28,7 +27,6 @@ const ScreeningModal = ({
   // Step 2 state
   const [selectedCinema, setSelectedCinema] = useState(null);
   const [screenings, setScreenings]         = useState([]);
-  const [loadingScreenings, setLoadingScreenings] = useState(false);
   const [selectedDate, setSelectedDate]     = useState('');
 
   // 7-day date list
@@ -42,12 +40,26 @@ const ScreeningModal = ({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // allScreenings holds every active screening for this movie (all dates)
+  const [allScreenings, setAllScreenings] = useState([]);
+
   useEffect(() => {
     const load = async () => {
       setLoadingCinemas(true);
       try {
-        const data = await cinemaService.getCinemas();
-        setCinemas(Array.isArray(data) ? data : (data.content || []));
+        // Fetch all screenings for this movie once, then derive cinemas from them
+        const data = await screeningService.getScreeningsByMovie(movieId);
+        const list = Array.isArray(data) ? data : (data.content || []);
+        setAllScreenings(list);
+        // Extract unique cinemas that have at least one upcoming screening
+        const now = new Date().toISOString();
+        const upcomingCinemaMap = {};
+        list.forEach(s => {
+          if (s.startTime >= now && s.cinemaId && !upcomingCinemaMap[s.cinemaId]) {
+            upcomingCinemaMap[s.cinemaId] = { id: s.cinemaId, name: s.cinemaName, address: s.cinemaAddress };
+          }
+        });
+        setCinemas(Object.values(upcomingCinemaMap));
       } catch {
         setCinemas([]);
       } finally {
@@ -55,24 +67,16 @@ const ScreeningModal = ({
       }
     };
     load();
-  }, []);
+  }, [movieId]);
 
   useEffect(() => {
-    if (!selectedCinema) return;
-    const load = async () => {
-      setLoadingScreenings(true);
-      try {
-        const data = await screeningService.getScreeningsByMovie(movieId, selectedDate);
-        const list = Array.isArray(data) ? data : (data.content || []);
-        setScreenings(list.filter(s => s.cinemaId === selectedCinema.id));
-      } catch {
-        setScreenings([]);
-      } finally {
-        setLoadingScreenings(false);
-      }
-    };
-    load();
-  }, [selectedCinema, selectedDate, movieId]);
+    if (!selectedCinema || !selectedDate) return;
+    // Filter from already-loaded screenings — no extra API call needed
+    const filtered = allScreenings.filter(
+      s => s.cinemaId === selectedCinema.id && s.startTime?.startsWith(selectedDate)
+    );
+    setScreenings(filtered);
+  }, [selectedCinema, selectedDate, allScreenings]);
 
   const handleSelectCinema = (cinema) => {
     setSelectedCinema(cinema);
@@ -246,12 +250,7 @@ const ScreeningModal = ({
 
             {/* Screening slots */}
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              {loadingScreenings ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <div className="w-8 h-8 border-3 border-cinema-red border-t-transparent rounded-full animate-spin" />
-                  <p className="text-gray-500 text-sm">Đang tải suất chiếu...</p>
-                </div>
-              ) : screenings.length === 0 ? (
+              {screenings.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="text-base font-medium">Không có suất chiếu</p>

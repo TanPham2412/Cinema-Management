@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -215,10 +217,17 @@ public class BookingService {
         return BookingResponseDTO.fromEntity(bookingRepository.save(savedBooking));
     }
 
+    public Page<BookingResponseDTO> getAdminBookings(
+            Booking.BookingStatus status, Long cinemaId, Long movieId, String keyword, Pageable pageable) {
+        return bookingRepository.findForAdmin(status, cinemaId, movieId,
+                (keyword != null && !keyword.isBlank()) ? keyword : null, pageable)
+                .map(BookingResponseDTO::fromEntity);
+    }
+
     public List<BookingResponseDTO> getUserBookings(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        return bookingRepository.findByUserId(user.getId()).stream()
+        return bookingRepository.findByUserIdOrderByBookingTimeDesc(user.getId()).stream()
                 .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED
                           || b.getStatus() == Booking.BookingStatus.COMPLETED)
                 .map(BookingResponseDTO::fromEntity)
