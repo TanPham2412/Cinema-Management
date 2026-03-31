@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://api.plvcinema.xyz/api/reviews';
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8081/api'}/reviews`;
 
 // Get auth token
 const getAuthToken = () => {

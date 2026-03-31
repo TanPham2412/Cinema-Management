@@ -57,8 +57,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
-                // Public POST for login/register
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify").permitAll()
+                // Public POST for login/register and AI Chat
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify", "/v1/chat").permitAll()
                 // VNPay endpoints - return, callback & IPN must be public
                 .requestMatchers("/payment/vnpay/return", "/payment/vnpay/callback", "/payment/vnpay/ipn").permitAll()
                 // MoMo endpoints - return & notify must be public
@@ -93,7 +93,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://plvcinema.xyz", "https://www.plvcinema.xyz"));
+        configuration.setAllowedOrigins(Arrays.asList("https://plvcinema.xyz", "https://www.plvcinema.xyz", "http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

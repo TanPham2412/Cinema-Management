@@ -79,6 +79,8 @@ services:
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       # Logging
       LOGGING_LEVEL_NHom5_CINEMA_MANAGEMENT: INFO
+      # Gemini API Key
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     volumes:
       - uploads_data:/app/uploads
     depends_on:

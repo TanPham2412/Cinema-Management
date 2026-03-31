@@ -26,6 +26,7 @@ import CinemasPage from './pages/CinemasPage'
 import CinemaDetailPage from './pages/CinemaDetailPage'
 import ProtectedRoute, { UserOnlyRoute } from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
+import Chatbox from './components/Chatbox'
 
 function App() {
   return (
@@ -144,6 +145,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      <Chatbox />
     </>
   )
 }

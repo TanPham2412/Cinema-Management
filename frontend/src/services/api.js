@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_URL = 'https://api.plvcinema.xyz/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
