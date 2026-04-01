@@ -46,6 +46,7 @@ public class BookingService {
     private final SeatHoldStore seatHoldStore;
     private final ComboRepository comboRepository;
     private final BookingComboRepository bookingComboRepository;
+    private final EmailService emailService;
 
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request, String userEmail) {
@@ -214,7 +215,18 @@ public class BookingService {
         screening.setAvailableSeats(screening.getAvailableSeats() - seats.size());
         screeningRepository.save(screening);
 
-        return BookingResponseDTO.fromEntity(bookingRepository.save(savedBooking));
+        Booking finalBooking = bookingRepository.save(savedBooking);
+
+        // For non-gateway payments (CASH/BANK), booking is immediately CONFIRMED — send email now
+        if (!isGatewayPayment) {
+            try {
+                emailService.sendBookingConfirmationEmail(finalBooking);
+            } catch (Exception e) {
+                // Email failure must never break the booking flow
+            }
+        }
+
+        return BookingResponseDTO.fromEntity(finalBooking);
     }
 
     public Page<BookingResponseDTO> getAdminBookings(

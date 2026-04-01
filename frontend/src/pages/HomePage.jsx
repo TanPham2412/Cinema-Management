@@ -98,7 +98,7 @@ const HomePage = () => {
               </span>
               <br />
               <span className="bg-gradient-to-r from-cinema-red via-cinema-gold to-cinema-red bg-clip-text text-transparent">
-                LLMCinema
+                PLVCinema
               </span>
             </h1>
             

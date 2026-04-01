@@ -40,6 +40,7 @@ public class MoMoService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final SeatHoldStore seatHoldStore;
+    private final EmailService emailService;
 
     public String createPaymentUrl(String bookingCode) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
@@ -178,6 +179,15 @@ public class MoMoService {
             broadcastSeatUpdate(booking, success ? "CONFIRM" : "RELEASE");
         } catch (Exception wsErr) {
             log.error("[MoMo] WS broadcast failed for booking {}: {}", orderId, wsErr.getMessage(), wsErr);
+        }
+
+        // Send booking confirmation email asynchronously
+        if (success) {
+            try {
+                emailService.sendBookingConfirmationEmail(booking);
+            } catch (Exception e) {
+                log.error("[MoMo] Failed to send confirmation email for booking {}: {}", orderId, e.getMessage());
+            }
         }
     }
 

@@ -43,6 +43,7 @@ public class VNPayService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final SeatHoldStore seatHoldStore;
+    private final EmailService emailService;
 
     /**
      * Generate VNPay payment URL for a booking
@@ -191,6 +192,15 @@ public class VNPayService {
             broadcastSeatUpdate(booking, success ? "CONFIRM" : "RELEASE");
         } catch (Exception wsErr) {
             log.error("WS broadcast failed for booking {}: {}", bookingCode, wsErr.getMessage(), wsErr);
+        }
+
+        // Send booking confirmation email asynchronously
+        if (success) {
+            try {
+                emailService.sendBookingConfirmationEmail(booking);
+            } catch (Exception e) {
+                log.error("Failed to send confirmation email for booking {}: {}", bookingCode, e.getMessage());
+            }
         }
     }
 

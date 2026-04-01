@@ -56,6 +56,16 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
+        // Kiểm tra tài khoản có bị khóa không
+        if (!user.isEnabled()) {
+            String targetUrl = UriComponentsBuilder.fromUriString("https://plvcinema.xyz/auth/google/callback")
+                    .queryParam("locked", "true")
+                    .build()
+                    .toUriString();
+            getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            return;
+        }
+
         // Check 2FA
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
             // Redirect to frontend 2FA challenge — no JWT yet

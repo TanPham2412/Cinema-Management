@@ -42,7 +42,7 @@ const Header = () => {
             </div>
             <div>
               <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cinema-red to-cinema-gold bg-clip-text text-transparent">
-                LLMCinema
+                PLVCinema
               </span>
               <div className="text-[10px] sm:text-xs text-gray-500 -mt-1">Premium Experience</div>
             </div>

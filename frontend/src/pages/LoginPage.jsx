@@ -4,12 +4,12 @@ import { useDispatch, useSelector } from 'react-redux'
 import { setCredentials } from '../redux/slices/authSlice'
 import api from '../services/api'
 import toast from 'react-hot-toast'
-import { Film, Mail, Lock, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react'
+import { Film, Mail, Lock, ArrowRight, Sparkles, ShieldCheck, ShieldX } from 'lucide-react'
 import Fireworks from '../components/Fireworks'
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({ email: '', password: '' })
-  const [step, setStep] = useState('login') // 'login' | '2fa'
+  const [step, setStep] = useState('login') // 'login' | '2fa' | 'locked'
   const [twoFactorEmail, setTwoFactorEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -50,6 +50,10 @@ const LoginPage = () => {
         handleLoginSuccess(response.data.token, response.data.user)
       }
     } catch (err) {
+      if (err.response?.data?.locked) {
+        setStep('locked')
+        return
+      }
       toast.error(err.response?.data?.message || 'Đăng nhập thất bại')
     } finally {
       setIsLoading(false)
@@ -92,7 +96,7 @@ const LoginPage = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-cinema-red blur-2xl opacity-50 animate-pulse"></div>
               <div className="relative p-4 bg-gradient-to-br from-cinema-red to-cinema-red-dark rounded-2xl shadow-2xl shadow-cinema-red/50">
-                {step === '2fa' ? <ShieldCheck className="w-12 h-12 text-white" /> : <Film className="w-12 h-12 text-white" />}
+                {step === 'locked' ? <ShieldX className="w-12 h-12 text-white" /> : step === '2fa' ? <ShieldCheck className="w-12 h-12 text-white" /> : <Film className="w-12 h-12 text-white" />}
               </div>
             </div>
           </div>
@@ -100,12 +104,14 @@ const LoginPage = () => {
             <div className="flex items-center justify-center space-x-2">
               <Sparkles className="w-5 h-5 text-cinema-gold animate-pulse" />
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-cinema-gold to-white bg-clip-text text-transparent animate-gradient">
-                {step === '2fa' ? 'Xác thực 2 lớp' : 'Chào mừng trở lại'}
+                {step === 'locked' ? 'Tài khoản bị khóa' : step === '2fa' ? 'Xác thực 2 lớp' : 'Chào mừng trở lại'}
               </h2>
               <Sparkles className="w-5 h-5 text-cinema-gold animate-pulse" style={{ animationDelay: '0.5s' }} />
             </div>
             <p className="text-gray-400 text-sm">
-              {step === '2fa'
+              {step === 'locked'
+                ? 'Tài khoản này đã bị khóa bởi quản trị viên'
+                : step === '2fa'
                 ? 'Nhập mã 6 chữ số từ ứng dụng Google Authenticator'
                 : 'Đăng nhập để tiếp tục trải nghiệm điện ảnh'}
             </p>
@@ -114,7 +120,29 @@ const LoginPage = () => {
 
         {/* Form */}
         <div className="bg-cinema-gray/50 backdrop-blur-xl rounded-2xl shadow-2xl p-5 sm:p-8 border border-cinema-gray-light">
-          {step === 'login' ? (
+          {step === 'locked' ? (
+            /* Locked Account Screen */
+            <div className="flex flex-col items-center text-center space-y-6 py-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-500/20 border-2 border-red-500/50">
+                <ShieldX className="w-10 h-10 text-red-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-red-400">Tài khoản bị khóa</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  Tài khoản của bạn đã bị khóa bởi quản trị viên.
+                  <br />Vui lòng liên hệ hỗ trợ để được giải quyết.
+                </p>
+              </div>
+              <div className="w-full pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setStep('login'); setFormData({ email: '', password: '' }) }}
+                  className="w-full flex items-center justify-center py-3 px-4 border border-cinema-gray-light rounded-lg text-white font-medium bg-white/5 hover:bg-white/10 transition-all duration-300">
+                  ← Quay lại đăng nhập
+                </button>
+              </div>
+            </div>
+          ) : step === 'login' ? (
             <form className="space-y-6" onSubmit={onSubmit}>
               {/* Email Input */}
               <div>
