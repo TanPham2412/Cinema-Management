@@ -113,10 +113,10 @@ const Chatbox = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 font-sans">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 font-sans">
       {/* Chat Window */}
       {isOpen && (
-        <div className="bg-gray-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] w-80 sm:w-[400px] h-[580px] flex flex-col mb-6 overflow-hidden border border-white/20 transform transition-all duration-500 ease-out animate-in slide-in-from-bottom-5 fade-in">
+        <div className="bg-gray-50/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] w-[calc(100vw-2rem)] sm:w-[400px] h-[min(580px,calc(100vh-6rem))] flex flex-col mb-4 sm:mb-6 overflow-hidden border border-white/20 transform transition-all duration-500 ease-out animate-in slide-in-from-bottom-5 fade-in">
           {/* Header */}
           <div className="bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 text-white p-5 flex justify-between items-center z-10 shadow-md">
             <div className="flex items-center space-x-3">

@@ -148,8 +148,10 @@ public class MovieService {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phim với ID: " + id));
         
-        // Check if movie has screenings
-        if (movie.getScreenings() != null && !movie.getScreenings().isEmpty()) {
+        // Check if movie has active screenings
+        boolean hasActiveScreenings = movie.getScreenings() != null &&
+                movie.getScreenings().stream().anyMatch(s -> Boolean.TRUE.equals(s.getActive()));
+        if (hasActiveScreenings) {
             throw new RuntimeException("Không thể xóa phim đang có suất chiếu. Vui lòng xóa các suất chiếu trước.");
         }
         

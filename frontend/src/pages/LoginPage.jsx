@@ -99,7 +99,7 @@ const LoginPage = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-center space-x-2">
               <Sparkles className="w-5 h-5 text-cinema-gold animate-pulse" />
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-cinema-gold to-white bg-clip-text text-transparent animate-gradient">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-cinema-gold to-white bg-clip-text text-transparent animate-gradient">
                 {step === '2fa' ? 'Xác thực 2 lớp' : 'Chào mừng trở lại'}
               </h2>
               <Sparkles className="w-5 h-5 text-cinema-gold animate-pulse" style={{ animationDelay: '0.5s' }} />
@@ -113,7 +113,7 @@ const LoginPage = () => {
         </div>
 
         {/* Form */}
-        <div className="bg-cinema-gray/50 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-cinema-gray-light">
+        <div className="bg-cinema-gray/50 backdrop-blur-xl rounded-2xl shadow-2xl p-5 sm:p-8 border border-cinema-gray-light">
           {step === 'login' ? (
             <form className="space-y-6" onSubmit={onSubmit}>
               {/* Email Input */}
@@ -187,7 +187,7 @@ const LoginPage = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Mã xác thực</label>
                 <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} autoFocus
-                  className="w-full px-4 py-4 bg-cinema-gray-lighter border border-cinema-gray-light rounded-lg text-white text-center text-2xl tracking-[0.5em] font-mono placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+                  className="w-full px-4 py-4 bg-cinema-gray-lighter border border-cinema-gray-light rounded-lg text-white text-center text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em] font-mono placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
                   placeholder="000000" value={otpCode}
                   onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
               </div>

@@ -19,32 +19,37 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
+    private final ComboRepository comboRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ComboRepository comboRepository;
 
     @Override
     public void run(ApplicationArguments args) {
-        createDefaultUser("admin@cinema.com", "Admin@123", "Admin", User.Role.ADMIN);
-        createDefaultUser("staff@cinema.com", "Staff@123", "Staff", User.Role.STAFF);
+        seedTestUsers();
         seedCombos();
     }
 
-    private void createDefaultUser(String email, String password, String fullName, User.Role role) {
-        if (userRepository.existsByEmail(email)) {
-            return;
-        }
+    private void seedTestUsers() {
+        createTestUser("bronzeuser@cinema.com",   "userrankdong1993",   "Bronze User",   User.MembershipTier.BRONZE,   0);
+        createTestUser("silveruser@cinema.com",   "userrankbac1993",    "Silver User",   User.MembershipTier.SILVER,   500);
+        createTestUser("golduser@cinema.com",     "userrankvang1993",   "Gold User",     User.MembershipTier.GOLD,     2000);
+        createTestUser("platinumuser@cinema.com", "userrankbachkim1993","Platinum User", User.MembershipTier.PLATINUM, 5000);
+        createTestUser("diamonduser@cinema.com",  "userankkimcuong1993","Diamond User",  User.MembershipTier.DIAMOND,  10000);
+    }
+
+    private void createTestUser(String email, String password, String fullName, User.MembershipTier tier, int loyaltyPoints) {
+        if (userRepository.existsByEmail(email)) return;
         User user = User.builder()
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .fullName(fullName)
-                .role(role)
+                .role(User.Role.CUSTOMER)
                 .enabled(true)
-                .loyaltyPoints(0)
-                .membershipTier(User.MembershipTier.BRONZE)
+                .loyaltyPoints(loyaltyPoints)
+                .membershipTier(tier)
                 .build();
         userRepository.save(user);
-        log.info("Created default {} account: {}", role, email);
+        log.info("Created test user [{}]: {}", tier, email);
     }
 
     private void seedCombos() {

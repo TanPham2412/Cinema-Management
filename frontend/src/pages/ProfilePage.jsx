@@ -161,9 +161,9 @@ const ProfilePage = () => {
 
   return (
     <>
-    <div className="min-h-screen bg-cinema-darker py-10">
+    <div className="min-h-screen bg-cinema-darker py-6 sm:py-10">
       <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-3xl font-bold text-white mb-8">Trang cá nhân</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-8">Trang cá nhân</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: User Info */}
@@ -265,7 +265,7 @@ const ProfilePage = () => {
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <div className="grid grid-cols-5 gap-2 mt-5">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-5">
                 {Object.entries(tierConfig).map(([key, t]) => (
                   <div key={key} className={`text-center p-2 rounded-lg border ${displayUser.membershipTier === key ? `${t.bg} ${t.border}` : 'border-cinema-gray-light'}`}>
                     <div className="text-lg">{t.icon}</div>

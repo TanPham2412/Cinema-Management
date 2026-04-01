@@ -11,8 +11,8 @@ const TIER_FOOD = {
   BRONZE:   { discount: 0,    label: null },
   SILVER:   { discount: 0.05, label: '🥈 Bạn được giảm 5% đồ ăn & nước uống' },
   GOLD:     { discount: 0.10, label: '🥇 Bạn được giảm 10% + miễn phí 1 lần nâng size' },
-  PLATINUM: { discount: 0.15, label: '💎 Giảm 15% + Tặng 1 Nước suối miễn phí' },
-  DIAMOND:  { discount: 0.20, label: '👑 Giảm 20% + Tặng 1 Combo 1 người miễn phí' },
+  PLATINUM: { discount: 0.15, label: '💎 Giảm 15% + Tặng 1 Nước suối miễn phí + 1 lần nâng size' },
+  DIAMOND:  { discount: 0.20, label: '👑 Giảm 20% + Tặng 1 Combo 1 người miễn phí + 1 lần nâng size' },
 }
 
 const CATEGORY_TAB = [
@@ -123,6 +123,8 @@ const BookingPage = () => {
   const [selectedFood, setSelectedFood] = useState({}) // { id: qty }
   const [foodCategory, setFoodCategory] = useState('COMBO')
   const [foodExpanded, setFoodExpanded] = useState(true)
+  const [upgradeApplied, setUpgradeApplied] = useState(false) // free size upgrade used
+  const [upgradeLItemId, setUpgradeLItemId] = useState(null)  // Size L item that got free upgrade
 
   useEffect(() => { selectedSeatsRef.current = selectedSeats }, [selectedSeats])
 
@@ -317,15 +319,47 @@ const BookingPage = () => {
   // Food helpers
   const tierFoodConfig = TIER_FOOD[user?.membershipTier] || TIER_FOOD.BRONZE
   const discountedFoodPrice = (price) => Math.round(price * (1 - tierFoodConfig.discount))
+  const hasSizeUpgrade = ['GOLD', 'PLATINUM', 'DIAMOND'].includes(user?.membershipTier)
+  const getBaseName = (name) => name.replace(/ Size [ML]$/, '')
+  const findSizeLItem = (mItem) => foodItems.find(i => i.name === getBaseName(mItem.name) + ' Size L')
+  const findSizeMItem = (lItem) => foodItems.find(i => i.name === getBaseName(lItem.name) + ' Size M')
+  const getFreeQty = (item) => {
+    if (user?.membershipTier === 'PLATINUM' && item.name === 'Nước suối') return 1
+    if (user?.membershipTier === 'DIAMOND'  && item.name === 'Combo 1 người') return 1
+    return 0
+  }
+
+  const handleSizeUpgrade = (mItem) => {
+    const lItem = findSizeLItem(mItem)
+    if (!lItem || upgradeApplied) return
+    setSelectedFood(prev => {
+      const next = { ...prev }
+      const mQty = next[mItem.id] || 0
+      if (mQty <= 1) delete next[mItem.id]
+      else next[mItem.id] = mQty - 1
+      next[lItem.id] = (next[lItem.id] || 0) + 1
+      return next
+    })
+    setUpgradeApplied(true)
+    setUpgradeLItemId(lItem.id)
+  }
 
   const foodTotal = foodItems.reduce((sum, item) => {
     const qty = selectedFood[item.id] || 0
     if (!qty) return sum
-    // Free items: water for PLATINUM, Combo 1 for DIAMOND
-    const isFreeWater  = user?.membershipTier === 'PLATINUM' && item.name === 'Nước suối'
-    const isFreeCombo1 = user?.membershipTier === 'DIAMOND' && item.name === 'Combo 1 người'
-    const unitPrice = (isFreeWater || isFreeCombo1) ? 0 : discountedFoodPrice(item.price)
-    return sum + unitPrice * qty
+    const freeQty = getFreeQty(item)
+    const paidQty = Math.max(0, qty - freeQty)
+    if (paidQty === 0) return sum
+    // Size upgrade: 1 paid unit of the upgraded Size L item costs Size M price
+    if (upgradeApplied && upgradeLItemId === item.id) {
+      const mItem = findSizeMItem(item)
+      if (mItem) {
+        const upgradeUnitPrice = discountedFoodPrice(mItem.price)
+        const normalUnitPrice  = discountedFoodPrice(item.price)
+        return sum + upgradeUnitPrice + normalUnitPrice * Math.max(0, paidQty - 1)
+      }
+    }
+    return sum + discountedFoodPrice(item.price) * paidQty
   }, 0)
 
   const grandTotal = selectedSeats.reduce((sum, s) => sum + seatPrice(s), 0) + foodTotal
@@ -334,7 +368,16 @@ const BookingPage = () => {
     setSelectedFood(prev => {
       const cur = prev[itemId] || 0
       const next = Math.max(0, Math.min(10, cur + delta))
-      if (next === 0) { const n = { ...prev }; delete n[itemId]; return n }
+      if (next === 0) {
+        const n = { ...prev }
+        delete n[itemId]
+        // Reset size upgrade if the upgraded item is removed
+        if (itemId === upgradeLItemId) {
+          setUpgradeApplied(false)
+          setUpgradeLItemId(null)
+        }
+        return n
+      }
       return { ...prev, [itemId]: next }
     })
   }
@@ -481,12 +524,12 @@ const BookingPage = () => {
           </div>
         )}
 
-        <div className="flex gap-5 items-start">
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
           {/* ─── Left: Seat map ─── */}
-          <div className="flex-1 min-w-0 bg-cinema-gray rounded-lg shadow-sm overflow-hidden border border-cinema-gray-light">
-            <div className="p-5 sm:p-7">
+          <div className="w-full lg:flex-1 lg:min-w-0 bg-cinema-gray rounded-lg shadow-sm overflow-hidden border border-cinema-gray-light">
+            <div className="p-3 sm:p-5 md:p-7">
               {/* Seat legend */}
-              <div className="flex flex-wrap gap-x-5 gap-y-2 mb-7">
+              <div className="flex flex-wrap gap-x-2 sm:gap-x-4 md:gap-x-5 gap-y-2 mb-5 sm:mb-7">
                 <LegendSeat color="bg-[#c8cad0]" label="Ghế trống" />
                 <LegendSeat color="bg-[#1a3a6c]" label="Ghế đang chọn" />
                 <LegendSeat color="bg-[#5cb8e4]" label="Ghế đang giữ" />
@@ -538,10 +581,10 @@ const BookingPage = () => {
           </div>
 
           {/* ─── Right: Movie info panel ─── */}
-          <div className="w-64 shrink-0 bg-cinema-gray rounded-lg shadow-sm sticky top-4 overflow-hidden border border-cinema-gray-light">
-            {/* Poster */}
+          <div className="w-full lg:w-64 shrink-0 bg-cinema-gray rounded-lg shadow-sm lg:sticky lg:top-4 overflow-hidden border border-cinema-gray-light">
+            {/* Poster - hidden on mobile, shown on desktop */}
             {screeningInfo?.posterUrl ? (
-              <div className="relative">
+              <div className="relative hidden lg:block">
                 <img
                   src={screeningInfo.posterUrl.startsWith('/api') ? screeningInfo.posterUrl : `/api${screeningInfo.posterUrl}`}
                   alt={screeningInfo.movieTitle}
@@ -564,7 +607,7 @@ const BookingPage = () => {
                 )}
               </div>
             ) : (
-              <div className="w-full aspect-[2/3] bg-cinema-gray-light flex items-center justify-center">
+              <div className="w-full aspect-[2/3] bg-cinema-gray-light hidden lg:flex items-center justify-center">
                 <Film className="w-12 h-12 text-gray-600" />
               </div>
             )}
@@ -702,11 +745,13 @@ const BookingPage = () => {
                 <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {foodItems.filter(i => i.category === foodCategory).map(item => {
                     const qty = selectedFood[item.id] || 0
-                    const isFreeWater  = user?.membershipTier === 'PLATINUM' && item.name === 'Nước suối'
-                    const isFreeCombo1 = user?.membershipTier === 'DIAMOND'  && item.name === 'Combo 1 người'
-                    const isFree = isFreeWater || isFreeCombo1
-                    const showDiscounted = tierFoodConfig.discount > 0 && !isFree
-                    const finalPrice = isFree ? 0 : discountedFoodPrice(item.price)
+                    const freeQtyForItem = getFreeQty(item)   // 0 or 1
+                    const hasFreeUnit  = freeQtyForItem > 0   // PLATINUM water / DIAMOND combo
+                    const isUpgradeItem = upgradeApplied && upgradeLItemId === item.id
+                    const isMSizeItem   = item.name.endsWith(' Size M') && !!findSizeLItem(item)
+                    const canUpgrade    = hasSizeUpgrade && !upgradeApplied && qty > 0 && isMSizeItem
+                    const showDiscounted = tierFoodConfig.discount > 0
+                    const discPrice = discountedFoodPrice(item.price)
 
                     return (
                       <div
@@ -717,9 +762,16 @@ const BookingPage = () => {
                             : 'border-cinema-gray-light bg-cinema-darker hover:border-gray-500'
                         }`}
                       >
-                        {isFree && (
+                        {/* Free badge: ×1 only */}
+                        {hasFreeUnit && (
                           <span className="absolute top-2 right-2 text-[9px] font-black bg-green-500 text-white px-1.5 py-0.5 rounded-full">
-                            MIỄN PHÍ
+                            ×1 MIỄN PHÍ
+                          </span>
+                        )}
+                        {/* Upgrade badge */}
+                        {isUpgradeItem && !hasFreeUnit && (
+                          <span className="absolute top-2 right-2 text-[9px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
+                            ↑ NÂNG SIZE
                           </span>
                         )}
                         <div>
@@ -728,7 +780,8 @@ const BookingPage = () => {
                         </div>
                         <div className="flex items-end justify-between gap-1 mt-auto">
                           <div>
-                            {isFree ? (
+                            {hasFreeUnit && qty <= freeQtyForItem ? (
+                              // 1st unit is free — show free label
                               <p className="text-green-400 font-black text-sm">Miễn phí 🎁</p>
                             ) : (
                               <>
@@ -738,8 +791,14 @@ const BookingPage = () => {
                                   </p>
                                 )}
                                 <p className="text-cinema-gold font-black text-sm">
-                                  {finalPrice.toLocaleString('vi-VN')}đ
+                                  {discPrice.toLocaleString('vi-VN')}đ
                                 </p>
+                                {hasFreeUnit && qty > freeQtyForItem && (
+                                  <p className="text-green-400 text-[10px]">×1 miễn phí</p>
+                                )}
+                                {isUpgradeItem && (
+                                  <p className="text-blue-400 text-[10px]">↑ nâng size miễn phí</p>
+                                )}
                               </>
                             )}
                           </div>
@@ -760,6 +819,15 @@ const BookingPage = () => {
                             </button>
                           </div>
                         </div>
+                        {/* Free size upgrade button — appears on Size M items */}
+                        {canUpgrade && (
+                          <button
+                            onClick={() => handleSizeUpgrade(item)}
+                            className="w-full mt-1 py-1 text-[10px] font-bold bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 rounded-lg transition-colors"
+                          >
+                            ↑ Nâng size miễn phí
+                          </button>
+                        )}
                       </div>
                     )
                   })}
@@ -791,17 +859,17 @@ const BookingPage = () => {
 
       {/* ─── Fixed bottom bar ─── */}
       <div className="fixed bottom-0 inset-x-0 bg-cinema-gray border-t border-cinema-gray-light shadow-[0_-4px_20px_rgba(0,0,0,0.4)] z-40">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-6">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-3 sm:gap-6">
           {/* Seat type legend */}
-          <div className="flex items-center gap-5 flex-1">
+          <div className="hidden sm:flex items-center gap-5 flex-1">
             <LegendSeat color="bg-[#c8cad0]" label="Ghế thường" />
             <LegendSeat color="bg-[#f5c842]" label="Ghế VIP" />
             <LegendSeat color="bg-pink-300"  label="Ghế đôi" />
           </div>
 
           {/* Total */}
-          <div className="px-6 border-x border-cinema-gray-light text-center shrink-0">
-            <p className="text-xs text-gray-400 mb-0.5">Tổng tiền</p>
+          <div className="px-3 sm:px-6 sm:border-x border-cinema-gray-light text-center shrink-0 flex-1 sm:flex-none">
+            <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Tổng tiền</p>
             <p className="font-black text-cinema-gold text-sm">
               {grandTotal > 0 ? grandTotal.toLocaleString('vi-VN') + ' vnđ' : '0 vnđ'}
             </p>
@@ -809,8 +877,8 @@ const BookingPage = () => {
 
           {/* Countdown */}
           <div className="text-center shrink-0">
-            <p className="text-xs text-gray-400 mb-0.5">Thời gian còn lại</p>
-            <p className={`font-black text-2xl tracking-tight leading-none ${
+            <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Thời gian</p>
+            <p className={`font-black text-xl sm:text-2xl tracking-tight leading-none ${
               timerRunning && timeLeft <= 60 ? 'text-red-400 animate-pulse' : 'text-white'
             }`}>
               {timerRunning ? fmtTimer(timeLeft) : '--:--'}

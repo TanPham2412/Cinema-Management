@@ -90,7 +90,7 @@ const RegisterPage = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-center space-x-2">
               <Sparkles className="w-5 h-5 text-cinema-gold animate-pulse" />
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-cinema-gold to-white bg-clip-text text-transparent">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-cinema-gold to-white bg-clip-text text-transparent">
                 Tạo tài khoản mới
               </h2>
               <Sparkles className="w-5 h-5 text-cinema-gold animate-pulse" style={{ animationDelay: '0.5s' }} />
@@ -122,7 +122,7 @@ const RegisterPage = () => {
           </div>
 
           {/* Registration Form */}
-          <div className="lg:col-span-2 bg-cinema-gray/50 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-cinema-gray-light">
+          <div className="lg:col-span-2 bg-cinema-gray/50 backdrop-blur-xl rounded-2xl shadow-2xl p-5 sm:p-8 border border-cinema-gray-light">
             <form className="space-y-5" onSubmit={onSubmit}>
               {/* Full Name */}
               <div>

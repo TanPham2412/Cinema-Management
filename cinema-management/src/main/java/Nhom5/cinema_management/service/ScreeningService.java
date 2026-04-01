@@ -62,6 +62,7 @@ public class ScreeningService {
 
     public List<ScreeningDTO> getAllScreenings() {
         return screeningRepository.findAll().stream()
+                .filter(s -> Boolean.TRUE.equals(s.getActive()))
                 .map(ScreeningDTO::fromEntity).toList();
     }
 

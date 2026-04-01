@@ -129,6 +129,7 @@ const UserManagement = () => {
 
         {/* Table */}
         <div className="bg-cinema-gray rounded-xl border border-cinema-gray-light overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-cinema-gray-light">
               <tr className="text-gray-400">
@@ -205,6 +206,7 @@ const UserManagement = () => {
               )}
             </tbody>
           </table>
+          </div>
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 py-4 border-t border-cinema-gray-light">
               <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-1 text-gray-400 hover:text-white disabled:opacity-40">

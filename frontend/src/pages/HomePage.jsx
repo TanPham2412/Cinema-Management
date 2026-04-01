@@ -85,14 +85,14 @@ const HomePage = () => {
           <div className="absolute w-96 h-96 -bottom-48 -right-48 bg-cinema-gold opacity-20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
 
-        <div className="container mx-auto px-4 py-20 relative z-10">
+        <div className="container mx-auto px-4 py-12 sm:py-20 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center space-x-2 bg-cinema-red/20 border border-cinema-red/30 rounded-full px-6 py-2 mb-8">
               <Star className="w-4 h-4 text-cinema-gold fill-cinema-gold" />
               <span className="text-cinema-gold text-sm font-medium">Trải nghiệm điện ảnh đẳng cấp quốc tế</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6">
               <span className="bg-gradient-to-r from-white via-cinema-gold to-white bg-clip-text text-transparent">
                 Chào mừng đến
               </span>
@@ -102,7 +102,7 @@ const HomePage = () => {
               </span>
             </h1>
             
-            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+            <p className="text-base sm:text-xl text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto">
               Đặt vé xem phim online nhanh chóng và tiện lợi. Trải nghiệm hệ thống rạp hiện đại với công nghệ âm thanh hình ảnh vượt trội
             </p>
             
@@ -129,21 +129,21 @@ const HomePage = () => {
       {/* Stats Section */}
       <section className="border-y border-cinema-gray-light bg-cinema-gray/30 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-cinema-gold mb-2">100+</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-cinema-gold mb-2">100+</div>
               <div className="text-gray-400 text-sm">Bộ phim</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-cinema-gold mb-2">50+</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-cinema-gold mb-2">50+</div>
               <div className="text-gray-400 text-sm">Rạp chiếu</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-cinema-gold mb-2">1M+</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-cinema-gold mb-2">1M+</div>
               <div className="text-gray-400 text-sm">Thành viên</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-cinema-gold mb-2">500+</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-cinema-gold mb-2">500+</div>
               <div className="text-gray-400 text-sm">Suất chiếu/ngày</div>
             </div>
           </div>
@@ -151,20 +151,20 @@ const HomePage = () => {
       </section>
 
       {/* Now Showing Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="flex items-center justify-between mb-8">
+      <section className="container mx-auto px-4 py-8 sm:py-16">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center space-x-3">
-              <TrendingUp className="w-8 h-8 text-cinema-red" />
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 flex items-center space-x-2 sm:space-x-3">
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-cinema-red" />
               <span>Phim đang chiếu</span>
             </h2>
-            <p className="text-gray-400">Những bộ phim hot nhất hiện nay</p>
+            <p className="text-gray-400 text-sm sm:text-base">Những bộ phim hot nhất hiện nay</p>
           </div>
           <Link to="/movies" className="text-cinema-gold hover:text-cinema-gold-dark transition-colors flex items-center space-x-1">
             <span>Xem tất cả</span><span>→</span>
           </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {loading
             ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
             : nowShowing.length === 0
@@ -175,20 +175,20 @@ const HomePage = () => {
       </section>
 
       {/* Coming Soon Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="flex items-center justify-between mb-8">
+      <section className="container mx-auto px-4 py-8 sm:py-16">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center space-x-3">
-              <Calendar className="w-8 h-8 text-cinema-gold" />
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 flex items-center space-x-2 sm:space-x-3">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-cinema-gold" />
               <span>Phim sắp chiếu</span>
             </h2>
-            <p className="text-gray-400">Những bộ phim đáng mong chờ</p>
+            <p className="text-gray-400 text-sm sm:text-base">Những bộ phim đáng mong chờ</p>
           </div>
           <Link to="/movies" className="text-cinema-gold hover:text-cinema-gold-dark transition-colors flex items-center space-x-1">
             <span>Xem tất cả</span><span>→</span>
           </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {loading
             ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
             : comingSoon.length === 0
@@ -201,7 +201,7 @@ const HomePage = () => {
       {/* Features Section */}
       <section className="bg-cinema-gray/30 border-y border-cinema-gray-light">
         <div className="container mx-auto px-4 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
             <div className="bg-cinema-gray-light/50 backdrop-blur-sm rounded-xl p-6 border border-cinema-gray-light hover:border-cinema-red transition-colors">
               <div className="w-12 h-12 bg-gradient-to-br from-cinema-red to-cinema-red-dark rounded-lg flex items-center justify-center mb-4">
                 <Ticket className="w-6 h-6 text-white" />

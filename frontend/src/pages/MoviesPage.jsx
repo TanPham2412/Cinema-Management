@@ -58,9 +58,9 @@ const MovieCard = ({ movie, onBuyTicket }) => {
       </Link>
 
       {/* Info */}
-      <div className="flex flex-col flex-1 p-3">
+      <div className="flex flex-col flex-1 p-2.5 sm:p-3">
         <Link to={`/movies/${movie.id}`}>
-          <h3 className={`font-bold text-base mb-2 line-clamp-2 leading-snug group-hover:text-cinema-gold transition-colors ${
+          <h3 className={`font-bold text-sm sm:text-base mb-1.5 sm:mb-2 line-clamp-2 leading-snug group-hover:text-cinema-gold transition-colors ${
             isNowShowing ? 'text-white' : 'text-gray-300'
           }`}>
             {movie.title}
@@ -68,13 +68,13 @@ const MovieCard = ({ movie, onBuyTicket }) => {
         </Link>
 
         {movie.genres?.length > 0 && (
-          <p className="text-gray-400 text-xs mb-1 line-clamp-1">
+          <p className="text-gray-400 text-[11px] sm:text-xs mb-1 line-clamp-1">
             <span className="text-gray-500">Thể loại: </span>
             {movie.genres.map(g => g.name).join(', ')}
           </p>
         )}
 
-        <p className="text-gray-400 text-xs mb-3">
+        <p className="text-gray-400 text-[11px] sm:text-xs mb-2 sm:mb-3">
           <span className="text-gray-500">Thời lượng: </span>
           {movie.duration} phút
         </p>
@@ -166,7 +166,7 @@ const MoviesPage = () => {
       {/* Top Bar */}
       <div className="bg-cinema-gray border-b border-cinema-gray-light">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-white mb-5">Danh sách phim</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-5">Danh sách phim</h1>
 
           {/* Search */}
           <form onSubmit={handleSearch} className="flex gap-3 mb-5">
@@ -208,13 +208,13 @@ const MoviesPage = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         {/* Filters */}
-        <div className="flex gap-3 mb-6 flex-wrap items-center">
+        <div className="flex gap-2 sm:gap-3 mb-6 flex-wrap items-center">
           <select
             value={selectedGenre}
             onChange={e => { setSelectedGenre(e.target.value); setPage(0) }}
-            className="px-4 py-2 bg-cinema-gray-light border border-cinema-gray-lighter text-gray-300 rounded-lg focus:outline-none focus:border-cinema-red text-sm"
+            className="flex-1 min-w-[120px] sm:flex-none px-3 sm:px-4 py-2 bg-cinema-gray-light border border-cinema-gray-lighter text-gray-300 rounded-lg focus:outline-none focus:border-cinema-red text-sm"
           >
             <option value="">Tất cả thể loại</option>
             {genres.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -223,7 +223,7 @@ const MoviesPage = () => {
           <select
             value={selectedLanguage}
             onChange={e => { setSelectedLanguage(e.target.value); setPage(0) }}
-            className="px-4 py-2 bg-cinema-gray-light border border-cinema-gray-lighter text-gray-300 rounded-lg focus:outline-none focus:border-cinema-red text-sm"
+            className="flex-1 min-w-[120px] sm:flex-none px-3 sm:px-4 py-2 bg-cinema-gray-light border border-cinema-gray-lighter text-gray-300 rounded-lg focus:outline-none focus:border-cinema-red text-sm"
           >
             <option value="">Tất cả ngôn ngữ</option>
             {['Tiếng Việt', 'Tiếng Anh', 'Tiếng Hàn', 'Tiếng Nhật', 'Tiếng Trung'].map(l => (
@@ -237,12 +237,12 @@ const MoviesPage = () => {
             </button>
           )}
 
-          <span className="ml-auto text-gray-400 text-sm">{totalElements} phim</span>
+          <span className="w-full sm:w-auto sm:ml-auto text-gray-400 text-sm text-right">{totalElements} phim</span>
         </div>
 
         {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-5">
             {[...Array(12)].map((_, i) => (
               <div key={i} className="animate-pulse">
                 <div className="aspect-[2/3] bg-cinema-gray-light rounded-xl mb-3" />
@@ -262,7 +262,7 @@ const MoviesPage = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {movies.map(movie => <MovieCard key={movie.id} movie={movie} onBuyTicket={setBuyTicketMovie} />)}
           </div>
         )}

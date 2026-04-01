@@ -77,14 +77,14 @@ const CinemaDetailPage = () => {
       {/* Header */}
       <div className="bg-cinema-gray border-b border-cinema-gray-light">
         <div className="container mx-auto px-4 py-5">
-          <div className="flex items-center gap-3 mb-1">
-            <button onClick={() => navigate('/cinemas')} className="text-gray-400 hover:text-white">
+          <div className="flex items-start sm:items-center gap-2 sm:gap-3 mb-1">
+            <button onClick={() => navigate('/cinemas')} className="text-gray-400 hover:text-white mt-1 sm:mt-0">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <Building2 className="w-5 h-5 text-blue-400" />
-            <h1 className="text-2xl font-bold text-white">{cinema.name}</h1>
+            <Building2 className="w-5 h-5 text-blue-400 shrink-0 mt-1 sm:mt-0" />
+            <h1 className="text-xl sm:text-2xl font-bold text-white">{cinema.name}</h1>
           </div>
-          <div className="flex flex-wrap gap-4 ml-8 mt-2 text-sm text-gray-400">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 ml-7 sm:ml-8 mt-2 text-sm text-gray-400">
             {cinema.address && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4" />
@@ -191,9 +191,9 @@ const CinemaDetailPage = () => {
                               movieDuration: s.movieDuration,
                             }
                           })}
-                          className="group bg-cinema-gray border border-cinema-gray-light hover:border-cinema-red rounded-xl px-4 py-3 transition-all text-left"
+                          className="group bg-cinema-gray border border-cinema-gray-light hover:border-cinema-red rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 transition-all text-left min-w-0"
                         >
-                          <div className="text-white font-bold text-base group-hover:text-cinema-red transition-colors">
+                          <div className="text-white font-bold text-sm sm:text-base group-hover:text-cinema-red transition-colors">
                             {fmt(s.startTime)}
                           </div>
                           <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[140px]" title={s.movieTitle}>

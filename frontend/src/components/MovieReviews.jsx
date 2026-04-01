@@ -128,12 +128,12 @@ const MovieReviews = ({ movieId }) => {
 
   const renderStars = (value, interactive = false) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-0.5 sm:gap-1">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
           <Star
             key={star}
-            size={interactive ? 24 : 16}
-            className={`cursor-${interactive ? 'pointer' : 'default'} transition-colors ${
+            size={interactive ? 20 : 16}
+            className={`cursor-${interactive ? 'pointer' : 'default'} transition-colors sm:w-6 sm:h-6 ${interactive ? '' : 'sm:w-4 sm:h-4'} ${
               star <= (interactive ? (hoverRating || rating) : value)
                 ? 'fill-[#d4af37] text-[#d4af37]'
                 : 'text-gray-600'
@@ -158,8 +158,8 @@ const MovieReviews = ({ movieId }) => {
   };
 
   return (
-    <div className="bg-black/50 rounded-lg p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-white">Đánh giá phim</h2>
+    <div className="bg-black/50 rounded-lg p-4 sm:p-6 space-y-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-white">Đánh giá phim</h2>
 
       {/* Review Form */}
       {isLoggedIn && (!myReview || isEditing) && (
@@ -262,7 +262,7 @@ const MovieReviews = ({ movieId }) => {
 
       {/* All Reviews */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-lg sm:text-xl font-semibold text-white">
           Tất cả đánh giá ({reviews.length})
         </h3>
 
@@ -279,9 +279,9 @@ const MovieReviews = ({ movieId }) => {
                 key={review.id}
                 className="bg-black/30 rounded-lg p-4 hover:bg-black/40 transition-colors"
               >
-                <div className="flex justify-between items-start mb-2">
+                <div className="flex justify-between items-start mb-2 flex-col sm:flex-row gap-1">
                   <div>
-                    <h4 className="text-white font-semibold">{review.userName}</h4>
+                    <h4 className="text-white font-semibold text-sm sm:text-base">{review.userName}</h4>
                     {renderStars(review.rating)}
                   </div>
                   <span className="text-xs text-gray-500">
