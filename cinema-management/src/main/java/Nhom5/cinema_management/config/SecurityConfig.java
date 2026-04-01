@@ -57,8 +57,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public GET endpoints
                 .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
-                // Public POST for login/register and AI Chat
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify", "/v1/chat").permitAll()
+                // Public POST for login/register, password reset, and AI Chat
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify", "/auth/forgot-password", "/auth/reset-password", "/v1/chat").permitAll()
                 // VNPay endpoints - return, callback & IPN must be public
                 .requestMatchers("/payment/vnpay/return", "/payment/vnpay/callback", "/payment/vnpay/ipn").permitAll()
                 // MoMo endpoints - return & notify must be public

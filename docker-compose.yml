@@ -72,6 +72,8 @@ services:
       # Mail
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Frontend URL (for password reset links)
+      FRONTEND_URL: ${FRONTEND_URL:-https://plvcinema.xyz}
       # VNPay Configuration (Sandbox)
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-LN55WHPY}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-L69GRTDYKQMRLRR5YN5ARWYAHG3NTQRR}

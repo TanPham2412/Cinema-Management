@@ -10,6 +10,8 @@ import VNPayReturnPage from './pages/VNPayReturnPage'
 import MoMoReturnPage from './pages/MoMoReturnPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import MovieManagement from './pages/admin/MovieManagement'
@@ -46,6 +48,8 @@ function App() {
           <Route path="payment/momo/result" element={<UserOnlyRoute><MoMoReturnPage /></UserOnlyRoute>} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="auth/google/callback" element={<OAuth2RedirectHandler />} />
           
           {/* Protected Routes - User only */}

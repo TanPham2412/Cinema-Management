@@ -25,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final PasswordResetService passwordResetService;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -76,5 +77,17 @@ public class AuthService {
                 .token(token)
                 .user(UserDTO.fromEntity(user))
                 .build();
+    }
+
+    public void forgotPassword(String email) {
+        passwordResetService.sendResetEmail(email);
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        passwordResetService.resetPassword(token, newPassword);
+    }
+
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        passwordResetService.changePassword(email, oldPassword, newPassword);
     }
 }

@@ -168,6 +168,54 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Xác thực 2 lớp đã được tắt"));
     }
 
+    // ── Password Reset Endpoints ───────────────────────────────────────────
+
+    /** Forgot password — send reset email (public) */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống"));
+        }
+        authService.forgotPassword(email.trim());
+        // Always return success to avoid user enumeration
+        return ResponseEntity.ok(Map.of("message", "Nếu email tồn tại, link đặt lại mật khẩu đã được gửi"));
+    }
+
+    /** Reset password with token (public) */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        String newPassword = body.get("newPassword");
+        if (token == null || token.isBlank() || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        try {
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Mật khẩu đã được đặt lại thành công"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /** Change password (authenticated) */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> body) {
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        try {
+            authService.changePassword(userDetails.getUsername(), oldPassword, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Mật khẩu đã được thay đổi thành công"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     /** Verify TOTP code during login, return full JWT */
     @PostMapping("/2fa/verify")
     public ResponseEntity<?> verify2FA(@RequestBody Map<String, String> body) {
