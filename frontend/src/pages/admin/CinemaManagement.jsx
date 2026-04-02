@@ -172,7 +172,7 @@ const CinemaManagement = () => {
         <div className="container mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link to="/admin" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
+              <Link to="/d57" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
               <Building2 className="w-6 h-6 text-blue-400" />
               <h1 className="text-2xl font-bold text-white">Quản lý Rạp chiếu</h1>
             </div>

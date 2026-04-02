@@ -1,5 +1,7 @@
 package Nhom5.cinema_management.dto.chat;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +12,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatRequestDTO {
+    @NotBlank(message = "Tin nhắn không được để trống")
+    @Size(max = 2000, message = "Tin nhắn tối đa 2000 ký tự")
     private String message;
-    private String imageBase64; // Chuỗi base64 của ảnh (bỏ "data:image/jpeg;base64,")
-    private String imageMimeType; // Loại ảnh ví dụ: "image/jpeg"
+
+    @Size(max = 500000, message = "Ảnh quá lớn")
+    private String imageBase64;
+
+    @Size(max = 50)
+    private String imageMimeType;
 }

@@ -29,6 +29,7 @@ import CinemaDetailPage from './pages/CinemaDetailPage'
 import ProtectedRoute, { UserOnlyRoute } from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
 import Chatbox from './components/Chatbox'
+import { R } from './constants/roles'
 
 function App() {
   return (
@@ -64,65 +65,65 @@ function App() {
           
           {/* Admin Routes */}
           <Route
-            path="admin"
+            path="d57"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <AdminDashboard />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/movies"
+            path="d57/movies"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <MovieManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/genres"
+            path="d57/genres"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <GenreManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/cinemas"
+            path="d57/cinemas"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <CinemaManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/screenings"
+            path="d57/screenings"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <ScreeningManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/users"
+            path="d57/users"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <UserManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/bookings"
+            path="d57/bookings"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <BookingManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/revenue"
+            path="d57/revenue"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <RevenueManagement />
               </ProtectedRoute>
             }
@@ -130,17 +131,17 @@ function App() {
           
           {/* Staff Routes */}
           <Route
-            path="staff/booking/:screeningId"
+            path="d73/booking/:screeningId"
             element={
-              <ProtectedRoute roles={['STAFF', 'ADMIN']}>
+              <ProtectedRoute roles={[R.STAFF, R.ADMIN]}>
                 <StaffBookingPage />
               </ProtectedRoute>
             }
           />
           <Route
-            path="staff/*"
+            path="d73/*"
             element={
-              <ProtectedRoute roles={['STAFF', 'ADMIN']}>
+              <ProtectedRoute roles={[R.STAFF, R.ADMIN]}>
                 <StaffDashboard />
               </ProtectedRoute>
             }

@@ -380,6 +380,62 @@ public class BookingService {
         };
     }
 
+    // ── Admin CRUD Methods ─────────────────────────────────────────────────
+
+    /**
+     * Admin updates booking status. When setting to CANCELLED, restores seats and points.
+     */
+    @Transactional
+    public BookingResponseDTO adminUpdateStatus(Long bookingId, String newStatusStr) {
+        Booking booking = bookingRepository.findByIdWithSeats(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingId));
+
+        Booking.BookingStatus targetStatus = Booking.BookingStatus.valueOf(newStatusStr.toUpperCase());
+        Booking.BookingStatus currentStatus = booking.getStatus();
+
+        // Restore seats and points when cancelling a non-cancelled booking
+        if (targetStatus == Booking.BookingStatus.CANCELLED
+                && currentStatus != Booking.BookingStatus.CANCELLED
+                && currentStatus != Booking.BookingStatus.EXPIRED) {
+            Screening screening = booking.getScreening();
+            int seatCount = booking.getBookingSeats() == null ? 0 : booking.getBookingSeats().size();
+            screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
+            screeningRepository.save(screening);
+
+            User user = booking.getUser();
+            user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
+            userRepository.save(user);
+        }
+
+        booking.setStatus(targetStatus);
+        return BookingResponseDTO.fromEntity(bookingRepository.save(booking));
+    }
+
+    /**
+     * Admin hard-deletes a booking. Cascade-safe: only removes booking domain records,
+     * never touches screenings, movies, seats, or users table rows.
+     */
+    @Transactional
+    public void adminDeleteBooking(Long bookingId) {
+        Booking booking = bookingRepository.findByIdWithSeats(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingId));
+
+        // Restore seats if not already cancelled/expired
+        if (booking.getStatus() != Booking.BookingStatus.CANCELLED
+                && booking.getStatus() != Booking.BookingStatus.EXPIRED) {
+            Screening screening = booking.getScreening();
+            int seatCount = booking.getBookingSeats() == null ? 0 : booking.getBookingSeats().size();
+            screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
+            screeningRepository.save(screening);
+        }
+
+        // Manually delete booking_combos (not cascaded on Booking entity)
+        bookingComboRepository.deleteAll(bookingComboRepository.findByBookingId(bookingId));
+
+        // Delete booking — JPA cascade ALL removes booking_seats and payment
+        bookingRepository.delete(booking);
+    }
+
     private String generateBookingCode() {
         return "BK" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }

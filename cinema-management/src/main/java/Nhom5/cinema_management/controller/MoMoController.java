@@ -75,27 +75,6 @@ public class MoMoController {
     }
 
     /**
-     * [DEV/TEST ONLY] Manually confirm a MoMo booking without real payment.
-     * Use this to simulate a successful payment during local development.
-     * Example: GET /payment/momo/test-confirm?bookingCode=BK123...
-     */
-    @GetMapping("/test-confirm")
-    public ResponseEntity<Map<String, Object>> testConfirm(
-            @RequestParam String bookingCode) {
-        Map<String, Object> result = new HashMap<>();
-        try {
-            moMoService.confirmPayment(bookingCode, "TEST-" + System.currentTimeMillis(), "0", "Test success");
-            result.put("success", true);
-            result.put("bookingCode", bookingCode);
-        } catch (Exception e) {
-            result.put("success", false);
-            result.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(result);
-        }
-        return ResponseEntity.ok(result);
-    }
-
-    /**
      * MoMo IPN (server-to-server) notification.
      * Must respond quickly with 200.
      */

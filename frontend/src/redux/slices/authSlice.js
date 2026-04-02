@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import authService from '../../services/authService'
 
-const user = JSON.parse(localStorage.getItem('user'))
+const user = authService.getStoredUser()
 
 const initialState = {
   user: user || null,
-  token: localStorage.getItem('token') || null,
+  token: authService.getStoredToken() || null,
   isLoading: false,
   isSuccess: false,
   isError: false,
@@ -57,9 +57,9 @@ export const authSlice = createSlice({
       state.user = action.payload.user
       state.token = action.payload.token
       state.isSuccess = true
-      // Persist to localStorage so the session survives page reloads
-      if (action.payload.token) localStorage.setItem('token', action.payload.token)
-      if (action.payload.user) localStorage.setItem('user', JSON.stringify(action.payload.user))
+      // Persist encoded to localStorage so the session survives page reloads
+      if (action.payload.token) localStorage.setItem('_t', action.payload.token)
+      if (action.payload.user) localStorage.setItem('_s', authService.encode(action.payload.user))
     },
   },
   extraReducers: (builder) => {

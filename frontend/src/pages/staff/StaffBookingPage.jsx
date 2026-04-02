@@ -129,7 +129,7 @@ const StaffBookingPage = () => {
       })
     } catch (e) {
       // If fetch fails, show error and go back
-      navigate('/staff')
+      navigate('/d73')
     } finally {
       setLoading(false)
     }
@@ -207,7 +207,7 @@ const StaffBookingPage = () => {
       {/* Header */}
       <div className="bg-cinema-gray border-b border-cinema-gray-light px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate('/staff')} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => navigate('/d73')} className="text-gray-400 hover:text-white transition-colors">
             <ChevronLeft size={22} />
           </button>
           <div>
@@ -511,7 +511,7 @@ const StaffBookingPage = () => {
                 </div>
               </div>
               <button
-                onClick={() => navigate('/staff')}
+                onClick={() => navigate('/d73')}
                 className="w-full py-3 bg-cinema-red hover:bg-red-700 text-white font-black rounded-xl text-sm transition-colors mt-2"
               >
                 Quay về Dashboard

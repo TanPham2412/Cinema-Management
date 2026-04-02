@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../redux/slices/authSlice'
 import { Film, User, LogOut, LayoutDashboard, Ticket, Home, Video, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { R } from '../constants/roles'
 
 const Header = () => {
   const navigate = useNavigate()
@@ -77,16 +78,16 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-3">
             {user ? (
               <>
-                {(user.role === 'ADMIN' || user.role === 'STAFF') && (
+                {(user.role === R.ADMIN || user.role === R.STAFF) && (
                   <Link
-                    to={user.role === 'ADMIN' ? '/admin' : '/staff'}
+                    to={user.role === R.ADMIN ? '/d57' : '/d73'}
                     className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-cinema-gold hover:bg-cinema-gray-light rounded-lg transition-all duration-300"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     <span className="hidden lg:inline">Dashboard</span>
                   </Link>
                 )}
-                {(user.role === 'ADMIN' || user.role === 'STAFF') && (
+                {(user.role === R.ADMIN || user.role === R.STAFF) && (
                   <span className="hidden lg:flex items-center space-x-2 px-4 py-2 text-gray-500 cursor-default rounded-lg">
                     <User className="w-4 h-4" />
                     <span>{user.fullName}</span>
@@ -182,9 +183,9 @@ const Header = () => {
 
             {user ? (
               <>
-                {(user.role === 'ADMIN' || user.role === 'STAFF') && (
+                {(user.role === R.ADMIN || user.role === R.STAFF) && (
                   <Link
-                    to={user.role === 'ADMIN' ? '/admin' : '/staff'}
+                    to={user.role === R.ADMIN ? '/d57' : '/d73'}
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:text-cinema-gold hover:bg-cinema-gray-light rounded-lg transition-all"
                   >
@@ -192,7 +193,7 @@ const Header = () => {
                     <span className="text-base font-medium">Dashboard</span>
                   </Link>
                 )}
-                {user.role !== 'ADMIN' && user.role !== 'STAFF' && (
+                {user.role !== R.ADMIN && user.role !== R.STAFF && (
                   <Link
                     to="/profile"
                     onClick={() => setIsMenuOpen(false)}
@@ -202,7 +203,7 @@ const Header = () => {
                     <span className="text-base font-medium">{user.fullName}</span>
                   </Link>
                 )}
-                {(user.role === 'ADMIN' || user.role === 'STAFF') && (
+                {(user.role === R.ADMIN || user.role === R.STAFF) && (
                   <div className="flex items-center space-x-3 px-4 py-3 text-gray-500">
                     <User className="w-5 h-5" />
                     <span className="text-base">{user.fullName}</span>

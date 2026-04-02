@@ -83,7 +83,7 @@ const RevenueManagement = () => {
       <div className="bg-cinema-gray border-b border-cinema-gray-light">
         <div className="container mx-auto px-4 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/admin" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
+            <Link to="/d57" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
             <TrendingUp className="w-6 h-6 text-cinema-gold" />
             <h1 className="text-2xl font-bold text-white">Doanh thu & Thống kê</h1>
           </div>

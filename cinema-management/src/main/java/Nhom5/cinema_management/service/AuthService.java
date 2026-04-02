@@ -12,7 +12,9 @@ import Nhom5.cinema_management.dto.LoginRequest;
 import Nhom5.cinema_management.dto.RegisterRequest;
 import Nhom5.cinema_management.dto.UserDTO;
 import Nhom5.cinema_management.exception.EmailAlreadyExistsException;
+import Nhom5.cinema_management.model.Role;
 import Nhom5.cinema_management.model.User;
+import Nhom5.cinema_management.repository.RoleRepository;
 import Nhom5.cinema_management.repository.UserRepository;
 import Nhom5.cinema_management.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordResetService passwordResetService;
+    private final RoleRepository roleRepository;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -37,7 +40,8 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
-                .role(User.Role.CUSTOMER)
+                .role(roleRepository.findById(Role.CUSTOMER_ID)
+                        .orElseThrow(() -> new RuntimeException("Role CUSTOMER not found")))
                 .enabled(true)
                 .loyaltyPoints(0)
                 .membershipTier(User.MembershipTier.BRONZE)

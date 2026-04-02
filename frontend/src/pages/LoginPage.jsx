@@ -6,6 +6,7 @@ import api from '../services/api'
 import toast from 'react-hot-toast'
 import { Film, Mail, Lock, ArrowRight, Sparkles, ShieldCheck, ShieldX } from 'lucide-react'
 import Fireworks from '../components/Fireworks'
+import { R } from '../constants/roles'
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({ email: '', password: '' })
@@ -20,8 +21,8 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (user) {
-      if (user.role === 'ADMIN') navigate('/admin')
-      else if (user.role === 'STAFF') navigate('/staff')
+      if (user.role === R.ADMIN) navigate('/d57')
+      else if (user.role === R.STAFF) navigate('/d73')
       else navigate('/')
     }
   }, [user, navigate])
@@ -29,12 +30,10 @@ const LoginPage = () => {
   const onChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
 
   const handleLoginSuccess = (token, userData) => {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(userData))
     dispatch(setCredentials({ user: userData, token }))
     toast.success('Đăng nhập thành công!')
-    if (userData.role === 'ADMIN') navigate('/admin')
-    else if (userData.role === 'STAFF') navigate('/staff')
+    if (userData.role === R.ADMIN) navigate('/d57')
+    else if (userData.role === R.STAFF) navigate('/d73')
     else navigate('/')
   }
 

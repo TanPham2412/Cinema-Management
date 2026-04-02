@@ -6,6 +6,7 @@ import { User, Mail, Phone, Star, Award, Ticket, LogOut, Crown, Calendar, Clock,
 import bookingService from '../services/bookingService'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { R } from '../constants/roles'
 
 const tierConfig = {
   BRONZE:   { label: 'Bronze',   color: 'text-amber-600',  bg: 'bg-amber-600/20',  border: 'border-amber-600',  icon: '🥉', next: 'Silver',   nextPoints: 300   },
@@ -84,8 +85,8 @@ const ProfilePage = () => {
           const refreshRes = await api.post('/auth/refresh')
           dispatch(setCredentials({ user: refreshRes.data.user, token: refreshRes.data.token }))
           // Redirect to correct dashboard
-          if (fresh.role === 'ADMIN') navigate('/admin')
-          else if (fresh.role === 'STAFF') navigate('/staff')
+          if (fresh.role === R.ADMIN) navigate('/d57')
+          else if (fresh.role === R.STAFF) navigate('/d73')
         } catch {}
       }
     }).catch(() => {})
@@ -223,12 +224,12 @@ const ProfilePage = () => {
                 {tier.icon} {tier.label}
               </span>
               <div className={`inline-flex items-center gap-1 ml-2 px-3 py-1 rounded-full text-xs font-medium ${
-                displayUser.role === 'ADMIN' ? 'bg-red-500/20 text-red-400 border border-red-500' :
-                displayUser.role === 'STAFF' ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
+                displayUser.role === R.ADMIN ? 'bg-red-500/20 text-red-400 border border-red-500' :
+                displayUser.role === R.STAFF ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
                 'bg-gray-500/20 text-gray-400 border border-gray-500'
               }`}>
                 <Crown className="w-3 h-3" />
-                {displayUser.role === 'ADMIN' ? 'Quản trị viên' : displayUser.role === 'STAFF' ? 'Nhân viên' : 'Thành viên'}
+                {displayUser.role === R.ADMIN ? 'Quản trị viên' : displayUser.role === R.STAFF ? 'Nhân viên' : 'Thành viên'}
               </div>
             </div>
 

@@ -4,12 +4,15 @@ import java.util.List;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import Nhom5.cinema_management.model.Combo;
+import Nhom5.cinema_management.model.Role;
 import Nhom5.cinema_management.model.User;
 import Nhom5.cinema_management.repository.ComboRepository;
+import Nhom5.cinema_management.repository.RoleRepository;
 import Nhom5.cinema_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +25,55 @@ public class DataInitializer implements ApplicationRunner {
     private final ComboRepository comboRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(ApplicationArguments args) {
+        seedRoles();
+        migrateExistingUsers();
         seedTestUsers();
         seedCombos();
+    }
+
+    private void seedRoles() {
+        if (roleRepository.count() == 0) {
+            roleRepository.saveAll(List.of(
+                Role.builder().id(Role.CUSTOMER_ID).name("CUSTOMER").build(),
+                Role.builder().id(Role.ADMIN_ID).name("ADMIN").build(),
+                Role.builder().id(Role.STAFF_ID).name("STAFF").build()
+            ));
+            log.info("Seeded roles table (CUSTOMER={}, ADMIN={}, STAFF={})",
+                    Role.CUSTOMER_ID, Role.ADMIN_ID, Role.STAFF_ID);
+        }
+    }
+
+    private void migrateExistingUsers() {
+        try {
+            // Check if old role column still exists
+            boolean hasOldColumn = false;
+            try {
+                jdbcTemplate.queryForObject("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'role'", Integer.class);
+                hasOldColumn = true;
+            } catch (Exception ignored) {}
+
+            if (hasOldColumn) {
+                // Make old role column nullable
+                jdbcTemplate.execute("ALTER TABLE users MODIFY COLUMN role VARCHAR(255) NULL DEFAULT NULL");
+                // Migrate existing users from old role column to new role_id FK
+                int c = jdbcTemplate.update("UPDATE users SET role_id = ? WHERE role = 'CUSTOMER' AND role_id IS NULL", Role.CUSTOMER_ID);
+                int a = jdbcTemplate.update("UPDATE users SET role_id = ? WHERE role = 'ADMIN' AND role_id IS NULL", Role.ADMIN_ID);
+                int s = jdbcTemplate.update("UPDATE users SET role_id = ? WHERE role = 'STAFF' AND role_id IS NULL", Role.STAFF_ID);
+                if (c + a + s > 0) {
+                    log.info("Migrated {} users to roles table (customers={}, admins={}, staff={})", c + a + s, c, a, s);
+                }
+                // Drop the redundant old role column
+                jdbcTemplate.execute("ALTER TABLE users DROP COLUMN role");
+                log.info("Dropped redundant 'role' column from users table");
+            }
+        } catch (Exception e) {
+            log.debug("Role migration skipped (fresh DB or already done): {}", e.getMessage());
+        }
     }
 
     private void seedTestUsers() {
@@ -43,7 +90,7 @@ public class DataInitializer implements ApplicationRunner {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .fullName(fullName)
-                .role(User.Role.CUSTOMER)
+                .role(roleRepository.findById(Role.CUSTOMER_ID).orElseThrow())
                 .enabled(true)
                 .loyaltyPoints(loyaltyPoints)
                 .membershipTier(tier)

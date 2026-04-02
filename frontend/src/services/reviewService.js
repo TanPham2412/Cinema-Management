@@ -4,13 +4,14 @@ const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8081/api'}/
 
 // Get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('_t');
 };
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
 });
 
@@ -31,7 +32,7 @@ axiosInstance.interceptors.request.use(
 // Get all reviews for a movie (public)
 export const getMovieReviews = async (movieId) => {
   try {
-    const response = await axios.get(`${API_URL}/movie/${movieId}`);
+    const response = await axiosInstance.get(`/movie/${movieId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching movie reviews:', error);

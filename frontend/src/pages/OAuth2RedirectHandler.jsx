@@ -6,6 +6,7 @@ import { jwtDecode } from 'jwt-decode'
 import toast from 'react-hot-toast'
 import api from '../services/api'
 import { Shield, ShieldX } from 'lucide-react'
+import { R } from '../constants/roles'
 
 const OAuth2RedirectHandler = () => {
   const navigate = useNavigate()
@@ -19,11 +20,10 @@ const OAuth2RedirectHandler = () => {
   const [loading, setLoading] = useState(false)
 
   const handleLoginSuccess = (token, user) => {
-    localStorage.setItem('token', token)
     dispatch(setCredentials({ user, token }))
     toast.success('Đăng nhập thành công!')
-    if (user.role === 'ADMIN') navigate('/admin')
-    else if (user.role === 'STAFF') navigate('/staff')
+    if (user.role === R.ADMIN) navigate('/d57')
+    else if (user.role === R.STAFF) navigate('/d73')
     else navigate('/')
   }
 

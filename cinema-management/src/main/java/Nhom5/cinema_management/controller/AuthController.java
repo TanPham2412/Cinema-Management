@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -25,12 +24,12 @@ import Nhom5.cinema_management.repository.UserRepository;
 import Nhom5.cinema_management.security.JwtService;
 import Nhom5.cinema_management.service.AuthService;
 import Nhom5.cinema_management.service.TwoFactorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthService authService;
@@ -39,12 +38,12 @@ public class AuthController {
     private final TwoFactorService twoFactorService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
             return ResponseEntity.ok(authService.login(request));
         } catch (DisabledException e) {
@@ -63,7 +62,7 @@ public class AuthController {
         result.put("email", user.getEmail());
         result.put("fullName", user.getFullName());
         result.put("phoneNumber", user.getPhoneNumber());
-        result.put("role", user.getRole().name());
+        result.put("role", user.getRole().getId());
         result.put("loyaltyPoints", user.getLoyaltyPoints());
         result.put("membershipTier", user.getMembershipTier().name());
         result.put("enabled", user.isEnabled());
@@ -84,7 +83,7 @@ public class AuthController {
             "email", user.getEmail(),
             "fullName", user.getFullName(),
             "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
-            "role", user.getRole().name(),
+            "role", user.getRole().getId(),
             "loyaltyPoints", user.getLoyaltyPoints(),
             "membershipTier", user.getMembershipTier().name()
         ));
@@ -110,7 +109,7 @@ public class AuthController {
         result.put("email", user.getEmail());
         result.put("fullName", user.getFullName());
         result.put("phoneNumber", user.getPhoneNumber());
-        result.put("role", user.getRole().name());
+        result.put("role", user.getRole().getId());
         result.put("loyaltyPoints", user.getLoyaltyPoints());
         result.put("membershipTier", user.getMembershipTier().name());
         return ResponseEntity.ok(result);
