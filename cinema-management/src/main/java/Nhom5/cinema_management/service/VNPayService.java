@@ -155,6 +155,21 @@ public class VNPayService {
         Booking booking = bookingRepository.findByBookingCodeWithSeats(bookingCode)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingCode));
 
+        // Idempotency: if already confirmed/cancelled, just re-broadcast and return
+        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
+            log.info("[VNPay] Booking {} already CONFIRMED, re-broadcasting CONFIRM", bookingCode);
+            try { broadcastSeatUpdate(booking, "CONFIRM"); } catch (Exception ignored) {}
+            return;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            log.info("[VNPay] Booking {} already CANCELLED, skipping", bookingCode);
+            return;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.EXPIRED) {
+            log.warn("[VNPay] Booking {} already EXPIRED, rejecting late payment", bookingCode);
+            return;
+        }
+
         Payment payment = paymentRepository.findByBookingId(booking.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Payment not found for booking: " + bookingCode));
 

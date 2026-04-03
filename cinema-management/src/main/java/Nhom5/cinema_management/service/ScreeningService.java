@@ -123,7 +123,8 @@ public class ScreeningService {
 
         java.util.Set<Long> confirmedSeatIds = s.getBookings() == null ? java.util.Set.of() :
                 s.getBookings().stream()
-                        .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED)
+                        .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED
+                                  || b.getStatus() == Booking.BookingStatus.COMPLETED)
                         .flatMap(b -> b.getBookingSeats() == null ? java.util.stream.Stream.empty()
                                 : b.getBookingSeats().stream())
                         .map(bs -> bs.getSeat().getId())

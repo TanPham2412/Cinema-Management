@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Send, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { getMovieReviews, getMyReviewForMovie, createReview, updateReview, deleteReview } from '../services/reviewService';
+import authService from '../services/authService';
 
 const MovieReviews = ({ movieId }) => {
   const [reviews, setReviews] = useState([]);
@@ -20,7 +21,7 @@ const MovieReviews = ({ movieId }) => {
   }, [movieId]);
 
   const checkLoginAndFetchMyReview = async () => {
-    const token = localStorage.getItem('token');
+    const token = authService.getStoredToken();
     setIsLoggedIn(!!token);
     
     if (token) {

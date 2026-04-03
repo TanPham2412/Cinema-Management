@@ -93,7 +93,7 @@ const Header = () => {
                     <span>{user.fullName}</span>
                   </span>
                 )}
-                {user.role !== 'ADMIN' && user.role !== 'STAFF' && (
+                {user.role !== R.ADMIN && user.role !== R.STAFF && (
                   <Link
                     to="/profile"
                     className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-cinema-gold hover:bg-cinema-gray-light rounded-lg transition-all duration-300"

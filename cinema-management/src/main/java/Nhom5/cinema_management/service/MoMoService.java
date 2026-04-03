@@ -145,6 +145,21 @@ public class MoMoService {
         Booking booking = bookingRepository.findByBookingCodeWithSeats(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + orderId));
 
+        // Idempotency: if already confirmed/cancelled, just re-broadcast and return
+        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
+            log.info("[MoMo] Booking {} already CONFIRMED, re-broadcasting CONFIRM", orderId);
+            try { broadcastSeatUpdate(booking, "CONFIRM"); } catch (Exception ignored) {}
+            return;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            log.info("[MoMo] Booking {} already CANCELLED, skipping", orderId);
+            return;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.EXPIRED) {
+            log.warn("[MoMo] Booking {} already EXPIRED, rejecting late payment", orderId);
+            return;
+        }
+
         Payment payment = paymentRepository.findByBookingId(booking.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Payment not found for booking: " + orderId));
 

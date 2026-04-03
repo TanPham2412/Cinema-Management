@@ -1,5 +1,6 @@
 package Nhom5.cinema_management.service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -47,9 +49,45 @@ public class BookingService {
     private final ComboRepository comboRepository;
     private final BookingComboRepository bookingComboRepository;
     private final EmailService emailService;
+    private final StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * Acquires a per-seat Redis distributed lock before processing the booking,
+     * then delegates to the @Transactional createBookingTx() method.
+     *
+     * Lock key:  seat:lock:{screeningId}:{seatId}
+     * TTL:       30 seconds (auto-expire if the server crashes mid-request)
+     * Strategy:  seats are sorted before locking to avoid deadlocks when two
+     *            users select overlapping sets of seats simultaneously.
+     */
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request, String userEmail) {
+        List<String> lockKeys = request.getSeatIds().stream()
+                .sorted()
+                .map(id -> "seat:lock:" + request.getScreeningId() + ":" + id)
+                .collect(Collectors.toList());
+
+        List<String> acquired = new ArrayList<>();
+        try {
+            for (String lockKey : lockKeys) {
+                Boolean ok = stringRedisTemplate.opsForValue()
+                        .setIfAbsent(lockKey, userEmail, Duration.ofSeconds(30));
+                if (!Boolean.TRUE.equals(ok)) {
+                    throw new IllegalStateException(
+                            "Ghế đang được người khác xử lý, vui lòng thử lại sau");
+                }
+                acquired.add(lockKey);
+            }
+            return createBookingTx(request, userEmail);
+        } finally {
+            if (!acquired.isEmpty()) {
+                stringRedisTemplate.delete(acquired);
+            }
+        }
+    }
+
+    @Transactional
+    public BookingResponseDTO createBookingTx(BookingRequestDTO request, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userEmail));
 
@@ -217,8 +255,25 @@ public class BookingService {
 
         Booking finalBooking = bookingRepository.save(savedBooking);
 
-        // For non-gateway payments (CASH/BANK), booking is immediately CONFIRMED — send email now
+        // For non-gateway payments (CASH/BANK), booking is immediately CONFIRMED:
+        //   1. Broadcast CONFIRM so all other users see the seat turn red immediately
+        //   2. Send confirmation email
         if (!isGatewayPayment) {
+            try {
+                Long screeningId = screening.getId();
+                for (Seat seat : seats) {
+                    String seatId = String.valueOf(seat.getId());
+                    seatHoldStore.release(screeningId, seatId);
+                    java.util.Map<String, Object> wsMsg = new java.util.HashMap<>();
+                    wsMsg.put("screeningId", screeningId);
+                    wsMsg.put("seatId", seat.getId());
+                    wsMsg.put("action", "CONFIRM");
+                    wsMsg.put("userId", userEmail);
+                    messagingTemplate.convertAndSend("/topic/seats/" + screeningId, (Object) wsMsg);
+                }
+            } catch (Exception wsErr) {
+                // WS broadcast failure must never roll back the booking transaction
+            }
             try {
                 emailService.sendBookingConfirmationEmail(finalBooking);
             } catch (Exception e) {
@@ -284,6 +339,11 @@ public class BookingService {
             throw new IllegalStateException("Vé đã được hủy trước đó");
         }
 
+        // Only reverse loyalty points if booking was CONFIRMED/COMPLETED
+        // (points were actually applied). For PENDING bookings, points were never applied.
+        boolean wasConfirmed = booking.getStatus() == Booking.BookingStatus.CONFIRMED
+                            || booking.getStatus() == Booking.BookingStatus.COMPLETED;
+
         booking.setStatus(Booking.BookingStatus.CANCELLED);
 
         // Restore available seats
@@ -292,10 +352,12 @@ public class BookingService {
         screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
         screeningRepository.save(screening);
 
-        // Restore loyalty points used
-        User user = booking.getUser();
-        user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
-        userRepository.save(user);
+        if (wasConfirmed) {
+            User user = booking.getUser();
+            user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
+            user.setMembershipTier(calculateTier(user.getLoyaltyPoints()));
+            userRepository.save(user);
+        }
 
         BookingResponseDTO result = BookingResponseDTO.fromEntity(bookingRepository.save(booking));
 
@@ -402,9 +464,14 @@ public class BookingService {
             screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
             screeningRepository.save(screening);
 
-            User user = booking.getUser();
-            user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
-            userRepository.save(user);
+            // Only reverse points if booking was CONFIRMED/COMPLETED (points were applied)
+            if (currentStatus == Booking.BookingStatus.CONFIRMED
+                    || currentStatus == Booking.BookingStatus.COMPLETED) {
+                User user = booking.getUser();
+                user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
+                user.setMembershipTier(calculateTier(user.getLoyaltyPoints()));
+                userRepository.save(user);
+            }
         }
 
         booking.setStatus(targetStatus);

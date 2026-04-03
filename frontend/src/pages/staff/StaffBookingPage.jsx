@@ -186,6 +186,11 @@ const StaffBookingPage = () => {
       bookingCreatedRef.current = true
       setBookingResult(result)
       setShowCheckout(false)
+      // Mark booked seats as BOOKED immediately so the map turns red without waiting for WS
+      const bookedIds = new Set(selectedSeats.map(s => String(s.id)))
+      setSeats(prev => prev.map(s => bookedIds.has(String(s.id)) ? { ...s, status: 'BOOKED' } : s))
+      setWsHeldSeats(prev => { const n = new Set(prev); bookedIds.forEach(id => n.delete(id)); return n })
+      setSelectedSeats([])
       setShowSuccess(true)
     } catch (e) {
       alert('Đặt vé thất bại: ' + (e.response?.data?.message || 'Vui lòng thử lại'))

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import Nhom5.cinema_management.service.VNPayService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,8 +29,8 @@ public class VNPayController {
 
     private final VNPayService vnPayService;
 
-    // Frontend base URL for redirects
-    private static final String FRONTEND_URL = "https://plvcinema.xyz";
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
 
     /**
      * Create VNPay payment URL for an existing (PENDING) booking.
@@ -62,9 +64,11 @@ public class VNPayController {
         String bankCode = params.getOrDefault("vnp_BankCode", "");
 
         boolean validSignature = vnPayService.verifySignature(params);
+        boolean dbSuccess = false;
         if (validSignature) {
             try {
                 vnPayService.confirmPayment(bookingCode, transactionNo, bankCode, responseCode);
+                dbSuccess = true;
             } catch (Exception e) {
                 log.error("Error confirming VNPay payment for booking {}: {}", bookingCode, e.getMessage());
             }
@@ -73,8 +77,8 @@ public class VNPayController {
             responseCode = "97";
         }
 
-        boolean success = "00".equals(responseCode);
-        String redirectUrl = FRONTEND_URL + "/payment/vnpay/result"
+        boolean success = "00".equals(responseCode) && dbSuccess;
+        String redirectUrl = frontendUrl + "/payment/vnpay/result"
                 + "?success=" + success
                 + "&bookingCode=" + bookingCode
                 + "&responseCode=" + responseCode;
@@ -110,6 +114,25 @@ public class VNPayController {
         result.put("success", "00".equals(responseCode));
         result.put("bookingCode", bookingCode);
         result.put("responseCode", responseCode);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Sandbox test-confirm: frontend calls this to confirm payment locally
+     * when VNPay IPN can't reach localhost.
+     */
+    @GetMapping("/test-confirm")
+    public ResponseEntity<Map<String, Object>> testConfirm(@RequestParam String bookingCode) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            vnPayService.confirmPayment(bookingCode, "test-txn-" + System.currentTimeMillis(), "TEST", "00");
+            result.put("success", true);
+            result.put("bookingCode", bookingCode);
+        } catch (Exception e) {
+            log.error("[VNPay] test-confirm error for {}: {}", bookingCode, e.getMessage());
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
         return ResponseEntity.ok(result);
     }
 

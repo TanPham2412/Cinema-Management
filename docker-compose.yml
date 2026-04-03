@@ -79,6 +79,10 @@ services:
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-L69GRTDYKQMRLRR5YN5ARWYAHG3NTQRR}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-https://api.plvcinema.xyz/api/payment/vnpay/return}
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      # MoMo Configuration
+      MOMO_RETURN_URL: ${MOMO_RETURN_URL:-https://api.plvcinema.xyz/api/payment/momo/return}
+      MOMO_NOTIFY_URL: ${MOMO_NOTIFY_URL:-https://api.plvcinema.xyz/api/payment/momo/notify}
+      MOMO_FRONTEND_RESULT_URL: ${MOMO_FRONTEND_RESULT_URL:-https://plvcinema.xyz/payment/momo/result}
       # Logging
       LOGGING_LEVEL_NHom5_CINEMA_MANAGEMENT: INFO
       # Gemini API Key

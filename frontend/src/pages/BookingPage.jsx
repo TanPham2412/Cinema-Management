@@ -117,6 +117,7 @@ const BookingPage = () => {
   const [vnpayBookingCode, setVnpayBookingCode] = useState(null)
   const [vnpayBookingId, setVnpayBookingId] = useState(null)
   const [vnpayPaymentUrl, setVnpayPaymentUrl] = useState(null)
+  const [vnpayConfirming, setVnpayConfirming] = useState(false)
 
   // ── Food & drink state ──────────────────────────────────────────────────────
   const [foodItems, setFoodItems] = useState([])       // loaded from API
@@ -151,12 +152,12 @@ const BookingPage = () => {
   const handleMomoTestConfirm = async () => {
     setMomoConfirming(true)
     try {
-      await api.get(`/payment/momo/test-confirm`, { params: { bookingCode: momoBookingCode } })
+      const res = await api.get(`/payment/momo/test-confirm`, { params: { bookingCode: momoBookingCode } })
+      const ok = res.data?.success === true
+      navigate(`/payment/momo/result?success=${ok}&bookingCode=${momoBookingCode}&resultCode=${ok ? '0' : '-1'}&message=${ok ? 'Thanh+toán+thành+công' : 'Xác+nhận+thất+bại'}`)
     } catch {
-      // backend redirects which axios will follow — ignore redirect error
+      navigate(`/payment/momo/result?success=false&bookingCode=${momoBookingCode}&resultCode=-1&message=Lỗi+xác+nhận+thanh+toán`)
     }
-    // Navigate to result page directly
-    navigate(`/payment/momo/result?success=true&bookingCode=${momoBookingCode}&resultCode=0&message=Test+success`)
   }
 
   // Start timer when user selects first seat; reset/stop when all deselected
@@ -473,6 +474,17 @@ const BookingPage = () => {
   }
 
   // Cancel an in-progress VNPay payment (user closed the VNPay tab without paying)
+  const handleVnpayTestConfirm = async () => {
+    setVnpayConfirming(true)
+    try {
+      const res = await api.get(`/payment/vnpay/test-confirm`, { params: { bookingCode: vnpayBookingCode } })
+      const ok = res.data?.success === true
+      navigate(`/payment/vnpay/result?success=${ok}&bookingCode=${vnpayBookingCode}&responseCode=${ok ? '00' : '99'}`)
+    } catch {
+      navigate(`/payment/vnpay/result?success=false&bookingCode=${vnpayBookingCode}&responseCode=99`)
+    }
+  }
+
   const handleVnpayCancel = async () => {
     try {
       if (vnpayBookingId) await bookingService.cancelBooking(vnpayBookingId)
@@ -1067,9 +1079,19 @@ const BookingPage = () => {
                 <p className="font-mono font-bold text-gray-800 text-sm tracking-wider">{vnpayBookingCode}</p>
               </div>
               <p className="text-sm text-gray-600 text-center">
-                Vui lòng hoàn tất thanh toán trên trang VNPay. Trang sẽ tự động chuyển khi thanh toán thành công.
+                Sau khi thanh toán xong trên trang VNPay, bấm nút bên dưới để xác nhận.
               </p>
+              <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                ⚠️ Chế độ TEST — bấm xác nhận để giả lập thanh toán thành công
+              </div>
               <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleVnpayTestConfirm}
+                  disabled={vnpayConfirming}
+                  className="block w-full py-3 bg-[#0066b2] hover:bg-[#004f8a] disabled:bg-gray-400 text-white font-black rounded-xl text-center text-sm transition-colors"
+                >
+                  {vnpayConfirming ? 'Đang xác nhận...' : '✅ Xác nhận đã thanh toán (Test)'}
+                </button>
                 <button
                   onClick={() => window.open(vnpayPaymentUrl, '_blank')}
                   className="w-full py-2.5 border-2 border-[#0066b2] text-[#0066b2] font-bold rounded-xl text-sm hover:bg-blue-50 transition-colors"
