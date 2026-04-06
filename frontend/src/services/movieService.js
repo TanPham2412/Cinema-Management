@@ -14,6 +14,11 @@ const getMovieById = async (id) => {
   return response.data
 }
 
+const getMovieBySlug = async (slug) => {
+  const response = await api.get(`/movies/slug/${slug}`)
+  return response.data
+}
+
 // Search movies
 const searchMovies = async (searchParams) => {
   const response = await api.get('/movies/search', { params: searchParams });
@@ -90,6 +95,7 @@ const uploadBanner = async (file) => {
 const movieService = {
   getMovies,
   getMovieById,
+  getMovieBySlug,
   searchMovies,
   getNowShowing,
   getComingSoon,

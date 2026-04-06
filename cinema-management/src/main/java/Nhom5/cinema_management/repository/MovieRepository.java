@@ -2,6 +2,7 @@ package Nhom5.cinema_management.repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,11 @@ import Nhom5.cinema_management.model.Movie;
 @Repository
 public interface MovieRepository extends JpaRepository<Movie, Long>, JpaSpecificationExecutor<Movie> {
     
+    // Find by slug
+    Optional<Movie> findBySlug(String slug);
+
+    boolean existsBySlug(String slug);
+
     // Find by status
     Page<Movie> findByStatus(Movie.MovieStatus status, Pageable pageable);
     List<Movie> findByStatus(Movie.MovieStatus status);

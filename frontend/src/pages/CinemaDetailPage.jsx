@@ -12,7 +12,7 @@ const PRICE_LABELS = {
 }
 
 const CinemaDetailPage = () => {
-  const { id } = useParams()
+  const { slug } = useParams()
   const navigate = useNavigate()
   const [cinema, setCinema] = useState(null)
   const [screens, setScreens] = useState([])
@@ -30,10 +30,10 @@ const CinemaDetailPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [cinemaData, screensData, screeningsData] = await Promise.all([
-          cinemaService.getCinemaById(id),
-          cinemaService.getScreensByCinema(id),
-          screeningService.getScreeningsByCinema(id),
+        const cinemaData = await cinemaService.getCinemaBySlug(slug)
+        const [screensData, screeningsData] = await Promise.all([
+          cinemaService.getScreensByCinema(cinemaData.id),
+          screeningService.getScreeningsByCinema(cinemaData.id),
         ])
         setCinema(cinemaData)
         setScreens(screensData)
@@ -45,7 +45,7 @@ const CinemaDetailPage = () => {
       }
     }
     load()
-  }, [id])
+  }, [slug])
 
   const fmt = (isoStr) => {
     const d = new Date(isoStr)
@@ -179,7 +179,7 @@ const CinemaDetailPage = () => {
                       return (
                         <button
                           key={s.id}
-                          onClick={() => navigate(`/booking/${s.id}`, {
+                          onClick={() => navigate(`/booking/${s.slug}`, {
                             state: {
                               movieTitle: s.movieTitle,
                               moviePosterUrl: s.moviePosterUrl,

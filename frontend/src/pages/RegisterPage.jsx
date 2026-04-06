@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { register, reset } from '../redux/slices/authSlice'
+import { register, reset, setCredentials } from '../redux/slices/authSlice'
+import api from '../services/api'
 import toast from 'react-hot-toast'
-import { Film, Mail, Lock, User, Phone, ArrowRight, CheckCircle, Sparkles } from 'lucide-react'
+import { Film, Mail, Lock, User, Phone, ArrowRight, CheckCircle, Sparkles, MailCheck, RefreshCw } from 'lucide-react'
 import Fireworks from '../components/Fireworks'
 
 const RegisterPage = () => {
@@ -14,25 +15,66 @@ const RegisterPage = () => {
     confirmPassword: '',
     phoneNumber: '',
   })
+  const [registrationDone, setRegistrationDone] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [resending, setResending] = useState(false)
+  const pollInterval = useRef(null)
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { user, isLoading, isError, isSuccess, message } = useSelector(
+  const { user, isLoading, isError, isSuccess, message, pollKey } = useSelector(
     (state) => state.auth
   )
+
+  // Start polling when we have a pollKey and are waiting for verification
+  useEffect(() => {
+    if (!registrationDone || !pollKey) return
+
+    pollInterval.current = setInterval(async () => {
+      try {
+        const res = await api.get('/auth/poll-verification', { params: { pollKey } })
+        if (res.data?.verified) {
+          clearInterval(pollInterval.current)
+          dispatch(setCredentials({ token: res.data.token, user: res.data.user }))
+          toast.success('Email đã được xác nhận! Chào mừng bạn đến với PLVCinema.')
+          navigate('/')
+        }
+      } catch {
+        // silently ignore poll errors
+      }
+    }, 3000)
+
+    return () => clearInterval(pollInterval.current)
+  }, [registrationDone, pollKey])
 
   useEffect(() => {
     if (isError) {
       toast.error(message)
     }
 
-    if (isSuccess || user) {
+    if (isSuccess && !user) {
+      setRegistrationDone(true)
+      setPendingEmail(formData.email)
+    }
+
+    if (user) {
       navigate('/')
-      toast.success('Đăng ký thành công!')
     }
 
     dispatch(reset())
   }, [user, isError, isSuccess, message, navigate, dispatch])
+
+  const handleResend = async () => {
+    setResending(true)
+    try {
+      await api.post('/auth/resend-verification', { email: pendingEmail })
+      toast.success('Email xác nhận đã được gửi lại!')
+    } catch {
+      toast.error('Không thể gửi lại email. Vui lòng thử lại sau.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   const onChange = (e) => {
     setFormData((prevState) => ({
@@ -57,6 +99,51 @@ const RegisterPage = () => {
     }
 
     dispatch(register(userData))
+  }
+
+  if (registrationDone) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cinema-darker via-cinema-dark to-cinema-gray flex items-center justify-center px-4 py-12 relative overflow-hidden">
+        <Fireworks />
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-96 h-96 -top-48 -left-48 bg-cinema-red opacity-10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute w-96 h-96 -bottom-48 -right-48 bg-cinema-gold opacity-10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+        <div className="max-w-md w-full relative z-10 text-center">
+          <div className="bg-cinema-gray/80 backdrop-blur-xl rounded-2xl p-8 border border-cinema-gray-light shadow-2xl">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-cinema-gold blur-2xl opacity-40 animate-pulse"></div>
+                <div className="relative p-4 bg-gradient-to-br from-cinema-gold to-yellow-600 rounded-2xl shadow-2xl">
+                  <MailCheck className="w-12 h-12 text-cinema-darker" />
+                </div>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Kiểm tra hộp thư của bạn</h2>
+            <p className="text-gray-400 mb-2">Chúng tôi đã gửi email xác nhận đến:</p>
+            <p className="text-cinema-gold font-semibold text-lg mb-4 break-all">{pendingEmail}</p>
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mb-6">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-cinema-gold" />
+              <span>Đang chờ xác nhận... Trang này sẽ tự động đăng nhập khi bạn xác nhận email.</span>
+            </div>
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-cinema-gray-light hover:bg-cinema-gray-light/80 text-white rounded-xl transition-colors mb-4 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${resending ? 'animate-spin' : ''}`} />
+              {resending ? 'Đang gửi...' : 'Gửi lại email xác nhận'}
+            </button>
+            <Link
+              to="/login"
+              className="block text-center text-cinema-gold hover:text-cinema-gold/80 transition-colors text-sm"
+            >
+              Quay lại trang đăng nhập
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

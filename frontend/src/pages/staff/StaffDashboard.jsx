@@ -171,7 +171,7 @@ const StaffDashboard = () => {
                     <div className="text-center py-10 text-gray-500 text-sm">Không có suất chiếu hôm nay</div>
                   ) : (
                     movieScreenings.map(s => (
-                      <Link key={s.id} to={`/d73/booking/${s.id}`}
+                      <Link key={s.id} to={`/d73/booking/${s.slug}`}
                         className="block w-full text-left px-3 py-3 rounded-lg bg-cinema-gray-light border border-cinema-gray-lighter hover:border-cinema-gold transition-colors">
                         <div className="flex justify-between">
                           <span className="text-white font-semibold text-lg">{formatTime(s.startTime)}</span>

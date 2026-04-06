@@ -14,6 +14,7 @@ import lombok.Setter;
 @Builder
 public class CinemaDTO {
     private Long id;
+    private String slug;
     private String name;
     private String address;
     private String city;
@@ -25,6 +26,7 @@ public class CinemaDTO {
     public static CinemaDTO fromEntity(Cinema cinema) {
         return CinemaDTO.builder()
                 .id(cinema.getId())
+                .slug(cinema.getSlug())
                 .name(cinema.getName())
                 .address(cinema.getAddress())
                 .city(cinema.getCity())

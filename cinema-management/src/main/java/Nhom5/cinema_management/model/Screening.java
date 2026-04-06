@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "screenings")
@@ -18,6 +19,9 @@ public class Screening {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, length = 12)
+    private String slug;
     
     @ManyToOne
     @JoinColumn(name = "movie_id", nullable = false)
@@ -48,6 +52,17 @@ public class Screening {
     
     @OneToMany(mappedBy = "screening", cascade = CascadeType.ALL)
     private List<Booking> bookings;
+
+    @PrePersist
+    protected void onCreate() {
+        if (slug == null || slug.isBlank()) {
+            slug = generateSlug();
+        }
+    }
+
+    public static String generateSlug() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    }
     
     public enum PriceCategory {
         EARLY_BIRD,     // Suất chiếu sớm

@@ -58,6 +58,10 @@ public class User implements UserDetails {
     @Builder.Default
     @Column(nullable = false)
     private Boolean enabled = true;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT TRUE")
+    private Boolean emailVerified = true;
     
     @Builder.Default
     @Column(nullable = false)

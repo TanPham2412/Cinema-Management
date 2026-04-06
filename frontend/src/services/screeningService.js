@@ -10,6 +10,16 @@ const getScreeningById = async (id) => {
   return response.data
 }
 
+const getScreeningBySlug = async (slug) => {
+  const response = await api.get(`/screenings/slug/${slug}`)
+  return response.data
+}
+
+const getScreeningSeatsBySlug = async (slug) => {
+  const response = await api.get(`/screenings/slug/${slug}/seats`)
+  return response.data
+}
+
 const getScreeningsByMovie = async (movieId, date) => {
   const params = date ? { date } : {}
   const response = await api.get(`/screenings/movie/${movieId}`, { params })
@@ -38,6 +48,8 @@ const deleteScreening = async (id) => {
 const screeningService = {
   getAllScreenings,
   getScreeningById,
+  getScreeningBySlug,
+  getScreeningSeatsBySlug,
   getScreeningsByMovie,
   getScreeningsByCinema,
   createScreening,

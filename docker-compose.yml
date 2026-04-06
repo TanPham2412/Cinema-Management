@@ -85,8 +85,9 @@ services:
       MOMO_FRONTEND_RESULT_URL: ${MOMO_FRONTEND_RESULT_URL:-https://plvcinema.xyz/payment/momo/result}
       # Logging
       LOGGING_LEVEL_NHom5_CINEMA_MANAGEMENT: INFO
-      # Gemini API Key
+      # Gemini AI
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_URL: ${GEMINI_API_URL:-https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent}
     volumes:
       - uploads_data:/app/uploads
     depends_on:

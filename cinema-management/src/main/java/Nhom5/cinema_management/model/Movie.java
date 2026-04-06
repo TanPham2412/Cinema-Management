@@ -24,6 +24,9 @@ public class Movie {
     
     @Column(nullable = false)
     private String title;
+
+    @Column(nullable = false, unique = true)
+    private String slug;
     
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -77,11 +80,23 @@ public class Movie {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (slug == null || slug.isBlank()) {
+            slug = generateSlug(title);
+        }
     }
     
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public static String generateSlug(String title) {
+        if (title == null) return "";
+        // Vietnamese diacritics removal
+        String s = java.text.Normalizer.normalize(title, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .replaceAll("[đĐ]", "d");
+        return s.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
     }
     
     public enum MovieStatus {

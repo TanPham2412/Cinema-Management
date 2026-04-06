@@ -30,6 +30,51 @@ public class EmailService {
     private String fromEmail;
 
     @Async
+    public void sendVerificationEmail(String toEmail, String fullName, String token, String frontendBaseUrl) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "PLV Cinema");
+            helper.setTo(toEmail);
+            helper.setSubject("Xác nhận tài khoản - PLVCinema");
+
+            String verifyUrl = frontendBaseUrl + "/verify-email?token=" + token;
+            String html = """
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0f; color: #fff; padding: 32px; border-radius: 12px;">
+                  <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="background: #e50914; width: 60px; height: 60px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 28px;">🎬</div>
+                    <h1 style="color: #fff; margin: 16px 0 4px; font-size: 24px;">PLVCinema</h1>
+                    <p style="color: #888; margin: 0;">Trải nghiệm điện ảnh đỉnh cao</p>
+                  </div>
+                  <h2 style="color: #fff; margin-bottom: 8px;">Xác nhận tài khoản của bạn</h2>
+                  <p style="color: #ccc; line-height: 1.6;">Xin chào <strong style="color:#fff;">%s</strong>,</p>
+                  <p style="color: #ccc; line-height: 1.6;">Cảm ơn bạn đã đăng ký tài khoản tại PLVCinema! Nhấn vào nút bên dưới để xác nhận địa chỉ email và kích hoạt tài khoản:</p>
+                  <div style="text-align: center; margin: 32px 0;">
+                    <a href="%s" style="background: #e50914; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+                      ✅ Xác nhận tài khoản
+                    </a>
+                  </div>
+                  <p style="color: #888; font-size: 13px; line-height: 1.6;">Link này sẽ hết hạn sau <strong>24 giờ</strong>. Nếu bạn không thực hiện đăng ký này, hãy bỏ qua email này.</p>
+                  <div style="background:#1a1a2e; border-radius: 8px; padding: 12px 16px; margin-top: 16px;">
+                    <p style="color: #888; font-size: 12px; margin: 0; word-break: break-all;">Hoặc copy link: <a href="%s" style="color:#e50914;">%s</a></p>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #222; margin: 24px 0;" />
+                  <p style="color: #555; font-size: 12px; text-align: center;">© 2026 PLVCinema. Mọi quyền được bảo lưu.</p>
+                </div>
+                """.formatted(fullName, verifyUrl, verifyUrl, verifyUrl);
+
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("Verification email sent to {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Failed to send verification email to {}: {}", toEmail, e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error sending verification email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    @Async
     public void sendPasswordResetEmail(String toEmail, String fullName, String resetToken, String frontendBaseUrl) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

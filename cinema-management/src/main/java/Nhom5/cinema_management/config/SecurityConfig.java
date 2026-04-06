@@ -70,7 +70,9 @@ public class SecurityConfig {
                 // Public GET endpoints (read-only data)
                 .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
                 // Public POST for login/register, password reset, and AI Chat
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify", "/auth/forgot-password", "/auth/reset-password", "/v1/chat").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify", "/auth/forgot-password", "/auth/reset-password", "/auth/resend-verification", "/v1/chat").permitAll()
+                // Email verification
+                .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                 // Combo public GET only
                 .requestMatchers(HttpMethod.GET, "/combos").permitAll()
                 // VNPay endpoints - return, callback & IPN must be public (server-to-server)

@@ -25,6 +25,11 @@ const getScreeningSeats = async (screeningId) => {
   return response.data
 }
 
+const getScreeningSeatsBySlug = async (slug) => {
+  const response = await api.get(`/screenings/slug/${slug}/seats`)
+  return response.data
+}
+
 const createVNPayUrl = async (bookingCode) => {
   const response = await api.get('/payment/vnpay/create', { params: { bookingCode } })
   return response.data // { paymentUrl: "..." }
@@ -41,6 +46,7 @@ const bookingService = {
   getBookingByCode,
   cancelBooking,
   getScreeningSeats,
+  getScreeningSeatsBySlug,
   createVNPayUrl,
   createMoMoUrl,
 }

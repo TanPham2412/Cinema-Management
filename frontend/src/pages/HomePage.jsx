@@ -8,7 +8,7 @@ const MovieCard = ({ movie }) => {
     ? { text: 'Đang chiếu', color: 'bg-green-500' }
     : { text: 'Sắp chiếu', color: 'bg-cinema-gold text-cinema-darker' }
   return (
-    <Link to={`/movies/${movie.id}`} className="group cursor-pointer">
+    <Link to={`/movies/${movie.slug}`} className="group cursor-pointer">
       <div className="relative overflow-hidden rounded-xl bg-cinema-gray-light aspect-[2/3] mb-3">
         {movie.posterUrl ? (
           <img

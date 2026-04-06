@@ -87,12 +87,13 @@ function InfoRow({ icon, label, value }) {
 }
 
 const BookingPage = () => {
-  const { screeningId } = useParams()
+  const { screeningSlug } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const navState = location.state || {}
   const { user } = useSelector((state) => state.auth)
 
+  const [screeningId, setScreeningId] = useState(null)
   const [seats, setSeats] = useState([])
   const [screeningInfo, setScreeningInfo] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -182,7 +183,7 @@ const BookingPage = () => {
   useEffect(() => {
     if (timeLeft === 0 && timerRunning) {
       selectedSeatsRef.current.forEach((seat) => {
-        websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+        websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
       })
       setSelectedSeats([])
       setTimerRunning(false)
@@ -192,13 +193,14 @@ const BookingPage = () => {
 
   // WebSocket: connect for real-time seat updates; release + disconnect on unmount
   useEffect(() => {
+    if (!screeningId) return
     // Fetch initial held seats from backend (for users who join late)
     api.get(`/screenings/${screeningId}/held-seats`).then((res) => {
       const heldIds = res.data || []
       setWsHeldSeats(new Set(heldIds.map(String)))
     }).catch(() => {})
 
-    websocketService.connect(parseInt(screeningId), (msg) => {
+    websocketService.connect(screeningId, (msg) => {
       const { seatId, action, userId } = msg
       if (userId === user?.email) return // ignore own messages
       if (action === 'CONFIRM') {
@@ -225,7 +227,7 @@ const BookingPage = () => {
         // Only release from SeatHoldStore if no booking was created yet
         // (once a booking exists as PENDING in DB, it owns the hold — expiry scheduler will release)
         selectedSeatsRef.current.forEach((seat) => {
-          websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+          websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
         })
       }
       websocketService.disconnect()
@@ -238,13 +240,14 @@ const BookingPage = () => {
       return
     }
     fetchSeats()
-  }, [screeningId])
+  }, [screeningSlug])
 
   const fetchSeats = async () => {
     try {
       setLoading(true)
-      const data = await bookingService.getScreeningSeats(screeningId)
+      const data = await bookingService.getScreeningSeatsBySlug(screeningSlug)
       setSeats(data.seats || [])
+      if (data.screening?.id) setScreeningId(data.screening.id)
       // Merge API screening info with nav state (nav state has poster/genres/rating)
       setScreeningInfo({
         ...navState,
@@ -306,10 +309,10 @@ const BookingPage = () => {
     const isOwnSelection = selectedSeats.find((s) => s.id === seat.id)
     if (seat.status === 'HELD' && !isOwnSelection) return
     if (isOwnSelection) {
-      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
       setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id))
     } else if (selectedSeats.length < 8) {
-      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'SELECT', user?.email)
+      websocketService.sendSeatSelection(screeningId, seat.id, 'SELECT', user?.email)
       setSelectedSeats((prev) => [...prev, seat])
     }
   }
@@ -404,11 +407,11 @@ const BookingPage = () => {
     try {
       // Re-send SELECT for all seats (ensures SeatHoldStore is current, handles payment retries)
       selectedSeats.forEach((seat) => {
-        websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'SELECT', user?.email)
+        websocketService.sendSeatSelection(screeningId, seat.id, 'SELECT', user?.email)
       })
 
       const result = await bookingService.createBooking({
-        screeningId: parseInt(screeningId),
+        screeningId: screeningId,
         seatIds: selectedSeats.map((s) => s.id),
         combos: Object.entries(selectedFood).map(([id, quantity]) => ({ id: parseInt(id), quantity })),
         paymentMethod,
@@ -463,7 +466,7 @@ const BookingPage = () => {
     }
     // Explicitly release WS hold and update local seat state
     selectedSeatsRef.current.forEach((seat) => {
-      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
       setSeats((prev) => prev.map((s) => s.id === seat.id ? { ...s, status: 'AVAILABLE' } : s))
     })
     setSelectedSeats([])
@@ -492,7 +495,7 @@ const BookingPage = () => {
       // ignore — booking may have already been cancelled via redirect
     }
     selectedSeatsRef.current.forEach((seat) => {
-      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
       setSeats((prev) => prev.map((s) => s.id === seat.id ? { ...s, status: 'AVAILABLE' } : s))
     })
     setSelectedSeats([])

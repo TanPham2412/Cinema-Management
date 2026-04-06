@@ -86,7 +86,7 @@ const ScreeningModal = ({
 
   const handleSelectScreening = (s) => {
     onClose();
-    navigate(`/booking/${s.id}`, {
+    navigate(`/booking/${s.slug}`, {
       state: {
         movieId, movieTitle, movieDuration,
         moviePosterUrl, movieGenres, movieRating,

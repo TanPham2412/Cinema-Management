@@ -38,6 +38,11 @@ public class CinemaController {
         return ResponseEntity.ok(cinemaService.getCinemaById(id));
     }
 
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<CinemaDTO> getCinemaBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(cinemaService.getCinemaBySlug(slug));
+    }
+
     @GetMapping("/{id}/screens")
     public ResponseEntity<List<ScreenDTO>> getScreensByCinema(@PathVariable Long id) {
         return ResponseEntity.ok(cinemaService.getScreensByCinema(id));

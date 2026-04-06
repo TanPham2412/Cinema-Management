@@ -6,10 +6,7 @@ const decode = (str) => { try { return JSON.parse(decodeURIComponent(escape(atob
 
 const register = async (userData) => {
   const response = await api.post('/auth/register', userData)
-  if (response.data.token) {
-    localStorage.setItem('_t', response.data.token)
-    localStorage.setItem('_s', encode(response.data.user))
-  }
+  // No token returned — account is pending email verification
   return response.data
 }
 

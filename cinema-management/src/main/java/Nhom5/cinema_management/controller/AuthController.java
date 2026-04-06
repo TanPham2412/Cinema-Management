@@ -1,8 +1,10 @@
 package Nhom5.cinema_management.controller;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.DisabledException;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import Nhom5.cinema_management.dto.AuthResponse;
@@ -37,9 +40,41 @@ public class AuthController {
     private final JwtService jwtService;
     private final TwoFactorService twoFactorService;
 
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        try {
+            var result = authService.verifyEmail(token);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/poll-verification")
+    public ResponseEntity<?> pollVerification(@RequestParam String pollKey) {
+        return ResponseEntity.ok(authService.pollVerification(pollKey));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống"));
+        }
+        try {
+            authService.resendVerification(email.trim());
+            return ResponseEntity.ok(Map.of("message", "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
@@ -49,6 +84,9 @@ public class AuthController {
         } catch (DisabledException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", "locked", true));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "Đăng nhập thất bại. Vui lòng thử lại.";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", msg));
         }
     }
 

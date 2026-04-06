@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { setCredentials } from '../redux/slices/authSlice'
 import api from '../services/api'
@@ -17,7 +17,14 @@ const LoginPage = () => {
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const [searchParams] = useSearchParams()
   const { user } = useSelector((state) => state.auth)
+
+  useEffect(() => {
+    const verified = searchParams.get('verified')
+    if (verified === 'true') toast.success('Email đã được xác nhận! Vui lòng đăng nhập.')
+    if (verified === 'false') toast.error('Link xác nhận không hợp lệ hoặc đã hết hạn.')
+  }, [])
 
   useEffect(() => {
     if (user) {

@@ -9,7 +9,7 @@ import MovieReviews from '../components/MovieReviews';
 import ScreeningModal from '../components/ScreeningModal';
 
 const MovieDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,12 +18,12 @@ const MovieDetail = () => {
 
   useEffect(() => {
     fetchMovieDetail();
-  }, [id]);
+  }, [slug]);
 
   const fetchMovieDetail = async () => {
     try {
       setLoading(true);
-      const data = await movieService.getMovieById(id);
+      const data = await movieService.getMovieBySlug(slug);
       setMovie(data);
     } catch (err) {
       console.error('Error fetching movie:', err);
@@ -271,7 +271,7 @@ const MovieDetail = () => {
       {/* Screening Modal */}
       {showBookModal && (
         <ScreeningModal
-          movieId={id}
+          movieId={movie.id}
           movieTitle={movie.title}
           movieDuration={movie.duration}
           moviePosterUrl={movie.posterUrl}

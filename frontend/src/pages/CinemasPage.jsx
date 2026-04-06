@@ -93,7 +93,7 @@ const CinemasPage = () => {
               <div
                 key={cinema.id}
                 className="group bg-cinema-gray rounded-2xl border border-cinema-gray-light hover:border-blue-500/50 transition-all duration-300 overflow-hidden cursor-pointer"
-                onClick={() => navigate(`/cinemas/${cinema.id}`)}
+                onClick={() => navigate(`/cinemas/${cinema.slug}`)}
               >
                 {/* Color top bar */}
                 <div className="h-1.5 bg-gradient-to-r from-blue-500 to-blue-700" />

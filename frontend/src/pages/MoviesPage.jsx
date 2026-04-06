@@ -12,7 +12,7 @@ const MovieCard = ({ movie, onBuyTicket }) => {
   return (
     <div className="group flex flex-col rounded-2xl overflow-hidden bg-cinema-dark border border-cinema-gray-light hover:border-cinema-red/40 transition-all hover:shadow-xl hover:shadow-cinema-red/10">
       {/* Poster */}
-      <Link to={`/movies/${movie.id}`} className="block relative overflow-hidden aspect-[2/3]">
+      <Link to={`/movies/${movie.slug}`} className="block relative overflow-hidden aspect-[2/3]">
         {movie.posterUrl ? (
           <img
             src={`/api${movie.posterUrl}`}
@@ -59,7 +59,7 @@ const MovieCard = ({ movie, onBuyTicket }) => {
 
       {/* Info */}
       <div className="flex flex-col flex-1 p-2.5 sm:p-3">
-        <Link to={`/movies/${movie.id}`}>
+        <Link to={`/movies/${movie.slug}`}>
           <h3 className={`font-bold text-sm sm:text-base mb-1.5 sm:mb-2 line-clamp-2 leading-snug group-hover:text-cinema-gold transition-colors ${
             isNowShowing ? 'text-white' : 'text-gray-300'
           }`}>

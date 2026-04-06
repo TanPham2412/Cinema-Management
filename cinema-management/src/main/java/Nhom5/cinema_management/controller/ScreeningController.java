@@ -48,9 +48,19 @@ public class ScreeningController {
         return ResponseEntity.ok(screeningService.getScreeningById(id));
     }
 
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<ScreeningDTO> getBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(screeningService.getScreeningBySlug(slug));
+    }
+
     @GetMapping("/{id}/seats")
     public ResponseEntity<Map<String, Object>> getSeats(@PathVariable Long id) {
         return ResponseEntity.ok(screeningService.getScreeningWithSeats(id));
+    }
+
+    @GetMapping("/slug/{slug}/seats")
+    public ResponseEntity<Map<String, Object>> getSeatsBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(screeningService.getScreeningWithSeatsBySlug(slug));
     }
 
     /** Returns seat IDs currently held (in-progress selection) by any user for this screening. */
