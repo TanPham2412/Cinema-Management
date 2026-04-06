@@ -23,16 +23,34 @@ import Nhom5.cinema_management.model.Genre;
 import Nhom5.cinema_management.model.Movie;
 import Nhom5.cinema_management.repository.GenreRepository;
 import Nhom5.cinema_management.repository.MovieRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MovieService {
     
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
+
+    /** Generate slugs for any existing movies that don't have one yet (e.g. after adding the slug column). */
+    @PostConstruct
+    @Transactional
+    public void generateMissingSlugs() {
+        List<Movie> movies = movieRepository.findAll();
+        for (Movie movie : movies) {
+            if (movie.getSlug() == null || movie.getSlug().isBlank()) {
+                String slug = ensureUniqueSlug(Movie.generateSlug(movie.getTitle()), movie.getId());
+                movie.setSlug(slug);
+                movieRepository.save(movie);
+                log.info("Generated slug '{}' for movie '{}'", slug, movie.getTitle());
+            }
+        }
+    }
     
     @Transactional(readOnly = true)
     public Page<MovieResponseDTO> getAllMovies(int page, int size, String sortBy, String sortDirection) {
@@ -48,6 +66,13 @@ public class MovieService {
     public MovieResponseDTO getMovieById(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phim với ID: " + id));
+        return convertToResponseDTO(movie);
+    }
+
+    @Transactional(readOnly = true)
+    public MovieResponseDTO getMovieBySlug(String slug) {
+        Movie movie = movieRepository.findBySlug(slug)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phim: " + slug));
         return convertToResponseDTO(movie);
     }
     
@@ -97,6 +122,7 @@ public class MovieService {
         
         Movie movie = Movie.builder()
                 .title(requestDTO.getTitle())
+                .slug(ensureUniqueSlug(Movie.generateSlug(requestDTO.getTitle()), null))
                 .description(requestDTO.getDescription())
                 .director(requestDTO.getDirector())
                 .cast(requestDTO.getCast())
@@ -125,6 +151,7 @@ public class MovieService {
         Set<Genre> genres = validateAndGetGenres(requestDTO.getGenreIds());
         
         movie.setTitle(requestDTO.getTitle());
+        movie.setSlug(ensureUniqueSlug(Movie.generateSlug(requestDTO.getTitle()), movie.getId()));
         movie.setDescription(requestDTO.getDescription());
         movie.setDirector(requestDTO.getDirector());
         movie.setCast(requestDTO.getCast());
@@ -148,12 +175,27 @@ public class MovieService {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phim với ID: " + id));
         
-        // Check if movie has screenings
-        if (movie.getScreenings() != null && !movie.getScreenings().isEmpty()) {
+        // Check if movie has active screenings
+        boolean hasActiveScreenings = movie.getScreenings() != null &&
+                movie.getScreenings().stream().anyMatch(s -> Boolean.TRUE.equals(s.getActive()));
+        if (hasActiveScreenings) {
             throw new RuntimeException("Không thể xóa phim đang có suất chiếu. Vui lòng xóa các suất chiếu trước.");
         }
         
         movieRepository.delete(movie);
+    }
+
+    /** Ensure slug is unique by appending -2, -3, ... if needed. Excludes the movie being updated. */
+    private String ensureUniqueSlug(String baseSlug, Long excludeId) {
+        String slug = baseSlug;
+        int suffix = 2;
+        while (true) {
+            var existing = movieRepository.findBySlug(slug);
+            if (existing.isEmpty() || (excludeId != null && existing.get().getId().equals(excludeId))) {
+                return slug;
+            }
+            slug = baseSlug + "-" + suffix++;
+        }
     }
     
     private Set<Genre> validateAndGetGenres(Set<Long> genreIds) {
@@ -249,6 +291,7 @@ public class MovieService {
         
         return MovieResponseDTO.builder()
                 .id(movie.getId())
+                .slug(movie.getSlug())
                 .title(movie.getTitle())
                 .description(movie.getDescription())
                 .director(movie.getDirector())

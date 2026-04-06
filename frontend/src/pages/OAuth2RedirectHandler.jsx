@@ -5,7 +5,8 @@ import { setCredentials } from '../redux/slices/authSlice'
 import { jwtDecode } from 'jwt-decode'
 import toast from 'react-hot-toast'
 import api from '../services/api'
-import { Shield } from 'lucide-react'
+import { Shield, ShieldX } from 'lucide-react'
+import { R } from '../constants/roles'
 
 const OAuth2RedirectHandler = () => {
   const navigate = useNavigate()
@@ -13,16 +14,16 @@ const OAuth2RedirectHandler = () => {
   const [searchParams] = useSearchParams()
 
   const [requires2fa, setRequires2fa] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLoginSuccess = (token, user) => {
-    localStorage.setItem('token', token)
     dispatch(setCredentials({ user, token }))
     toast.success('Đăng nhập thành công!')
-    if (user.role === 'ADMIN') navigate('/admin')
-    else if (user.role === 'STAFF') navigate('/staff')
+    if (user.role === R.ADMIN) navigate('/d57')
+    else if (user.role === R.STAFF) navigate('/d73')
     else navigate('/')
   }
 
@@ -31,6 +32,12 @@ const OAuth2RedirectHandler = () => {
     const error = searchParams.get('error')
     const r2fa = searchParams.get('requires2fa')
     const emailParam = searchParams.get('email')
+    const locked = searchParams.get('locked')
+
+    if (locked === 'true') {
+      setIsLocked(true)
+      return
+    }
 
     if (error) {
       toast.error('Đăng nhập Google thất bại. Vui lòng thử lại!')
@@ -68,11 +75,38 @@ const OAuth2RedirectHandler = () => {
     try {
       const res = await api.post('/auth/2fa/verify', { email, code })
       handleLoginSuccess(res.data.token, res.data.user)
-    } catch {
+    } catch (err) {
+      if (err.response?.data?.locked) {
+        setIsLocked(true)
+        setRequires2fa(false)
+        return
+      }
       toast.error('Mã xác thực không đúng hoặc đã hết hạn!')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cinema-darker via-cinema-dark to-cinema-gray flex items-center justify-center p-4">
+        <div className="bg-cinema-gray border border-cinema-gray-light rounded-2xl p-8 w-full max-w-sm text-center shadow-xl">
+          <div className="w-14 h-14 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ShieldX className="w-7 h-7 text-red-400" />
+          </div>
+          <h2 className="text-xl font-bold text-red-400 mb-2">Tài khoản bị khóa</h2>
+          <p className="text-gray-400 text-sm mb-6">
+            Tài khoản của bạn đã bị khóa bởi quản trị viên.<br />Vui lòng liên hệ hỗ trợ để được giải quyết.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="w-full py-3 bg-white/5 border border-cinema-gray-light hover:bg-white/10 text-white rounded-xl font-semibold transition-colors">
+            ← Quay lại đăng nhập
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (requires2fa) {

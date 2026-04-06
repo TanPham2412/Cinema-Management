@@ -10,6 +10,11 @@ const getCinemaById = async (id) => {
   return response.data
 }
 
+const getCinemaBySlug = async (slug) => {
+  const response = await api.get(`/cinemas/slug/${slug}`)
+  return response.data
+}
+
 const getAdminCinemas = async () => {
   const response = await api.get('/cinemas/admin/all')
   return response.data
@@ -62,6 +67,7 @@ const toggleScreenActive = async (screenId) => {
 const cinemaService = {
   getCinemas,
   getCinemaById,
+  getCinemaBySlug,
   getAdminCinemas,
   createCinema,
   updateCinema,

@@ -93,7 +93,7 @@ const UserManagement = () => {
     <div className="min-h-screen bg-cinema-darker">
       <div className="bg-cinema-gray border-b border-cinema-gray-light">
         <div className="container mx-auto px-4 py-5 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
+          <Link to="/d57" className="text-gray-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
           <Users className="w-6 h-6 text-green-400" />
           <h1 className="text-2xl font-bold text-white">Quản lý Người dùng</h1>
           <span className="ml-auto text-gray-400 text-sm">{total} người dùng</span>
@@ -129,6 +129,7 @@ const UserManagement = () => {
 
         {/* Table */}
         <div className="bg-cinema-gray rounded-xl border border-cinema-gray-light overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-cinema-gray-light">
               <tr className="text-gray-400">
@@ -205,6 +206,7 @@ const UserManagement = () => {
               )}
             </tbody>
           </table>
+          </div>
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 py-4 border-t border-cinema-gray-light">
               <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-1 text-gray-400 hover:text-white disabled:opacity-40">

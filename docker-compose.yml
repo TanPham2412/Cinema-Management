@@ -72,13 +72,22 @@ services:
       # Mail
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Frontend URL (for password reset links)
+      FRONTEND_URL: ${FRONTEND_URL:-https://plvcinema.xyz}
       # VNPay Configuration (Sandbox)
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-LN55WHPY}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-L69GRTDYKQMRLRR5YN5ARWYAHG3NTQRR}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-https://api.plvcinema.xyz/api/payment/vnpay/return}
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      # MoMo Configuration
+      MOMO_RETURN_URL: ${MOMO_RETURN_URL:-https://api.plvcinema.xyz/api/payment/momo/return}
+      MOMO_NOTIFY_URL: ${MOMO_NOTIFY_URL:-https://api.plvcinema.xyz/api/payment/momo/notify}
+      MOMO_FRONTEND_RESULT_URL: ${MOMO_FRONTEND_RESULT_URL:-https://plvcinema.xyz/payment/momo/result}
       # Logging
       LOGGING_LEVEL_NHom5_CINEMA_MANAGEMENT: INFO
+      # Gemini AI
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_URL: ${GEMINI_API_URL:-https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent}
     volumes:
       - uploads_data:/app/uploads
     depends_on:

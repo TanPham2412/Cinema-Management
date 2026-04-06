@@ -23,10 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import Nhom5.cinema_management.model.Booking;
 import Nhom5.cinema_management.model.Movie;
+import Nhom5.cinema_management.model.Role;
 import Nhom5.cinema_management.model.User;
 import Nhom5.cinema_management.repository.BookingRepository;
 import Nhom5.cinema_management.repository.CinemaRepository;
 import Nhom5.cinema_management.repository.MovieRepository;
+import Nhom5.cinema_management.repository.RoleRepository;
 import Nhom5.cinema_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -40,6 +42,7 @@ public class AdminController {
     private final MovieRepository movieRepository;
     private final CinemaRepository cinemaRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
     // ── Dashboard ─────────────────────────────────────────────────────────
 
@@ -67,13 +70,14 @@ public class AdminController {
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String keyword) {
 
+        size = Math.min(Math.max(size, 1), 50);
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        User.Role roleEnum = null;
+        Role roleEntity = null;
         if (role != null && !role.isEmpty()) {
-            try { roleEnum = User.Role.valueOf(role); } catch (Exception ignored) {}
+            roleEntity = roleRepository.findByName(role).orElse(null);
         }
         String kw = (keyword != null && !keyword.isBlank()) ? keyword : null;
-        Page<User> result = userRepository.searchUsers(roleEnum, kw, pageable);
+        Page<User> result = userRepository.searchUsers(roleEntity, kw, pageable);
 
         List<Map<String, Object>> content = new ArrayList<>();
         for (User u : result.getContent()) {
@@ -82,7 +86,7 @@ public class AdminController {
             m.put("fullName", u.getFullName());
             m.put("email", u.getEmail());
             m.put("phoneNumber", u.getPhoneNumber());
-            m.put("role", u.getRole().name());
+            m.put("role", u.getRole().getName());
             m.put("enabled", u.isEnabled());
             m.put("membershipTier", u.getMembershipTier().name());
             m.put("loyaltyPoints", u.getLoyaltyPoints());
@@ -113,9 +117,11 @@ public class AdminController {
         if (newRole == null) return ResponseEntity.badRequest().build();
         return userRepository.findById(id).map(user -> {
             try {
-                user.setRole(User.Role.valueOf(newRole));
+                Role newRoleEntity = roleRepository.findByName(newRole)
+                        .orElseThrow(() -> new RuntimeException("Invalid role"));
+                user.setRole(newRoleEntity);
                 userRepository.save(user);
-                return ResponseEntity.ok(Map.of("role", user.getRole().name()));
+                return ResponseEntity.ok(Map.of("role", user.getRole().getName()));
             } catch (Exception e) {
                 return ResponseEntity.badRequest().build();
             }
@@ -133,7 +139,7 @@ public class AdminController {
                 user.setPhoneNumber((String) body.get("phoneNumber"));
             }
             if (body.containsKey("role")) {
-                try { user.setRole(User.Role.valueOf((String) body.get("role"))); } catch (Exception ignored) {}
+                roleRepository.findByName((String) body.get("role")).ifPresent(user::setRole);
             }
             userRepository.save(user);
             Map<String, Object> m = new LinkedHashMap<>();
@@ -141,7 +147,7 @@ public class AdminController {
             m.put("fullName", user.getFullName());
             m.put("email", user.getEmail());
             m.put("phoneNumber", user.getPhoneNumber());
-            m.put("role", user.getRole().name());
+            m.put("role", user.getRole().getName());
             m.put("enabled", user.isEnabled());
             m.put("membershipTier", user.getMembershipTier().name());
             m.put("loyaltyPoints", user.getLoyaltyPoints());

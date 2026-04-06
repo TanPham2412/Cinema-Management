@@ -1,18 +1,21 @@
 package Nhom5.cinema_management.controller;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import Nhom5.cinema_management.dto.AuthResponse;
@@ -24,12 +27,12 @@ import Nhom5.cinema_management.repository.UserRepository;
 import Nhom5.cinema_management.security.JwtService;
 import Nhom5.cinema_management.service.AuthService;
 import Nhom5.cinema_management.service.TwoFactorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthService authService;
@@ -37,14 +40,54 @@ public class AuthController {
     private final JwtService jwtService;
     private final TwoFactorService twoFactorService;
 
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        try {
+            var result = authService.verifyEmail(token);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/poll-verification")
+    public ResponseEntity<?> pollVerification(@RequestParam String pollKey) {
+        return ResponseEntity.ok(authService.pollVerification(pollKey));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống"));
+        }
+        try {
+            authService.resendVerification(email.trim());
+            return ResponseEntity.ok(Map.of("message", "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            return ResponseEntity.ok(authService.login(request));
+        } catch (DisabledException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", "locked", true));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "Đăng nhập thất bại. Vui lòng thử lại.";
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", msg));
+        }
     }
 
     @GetMapping("/me")
@@ -57,7 +100,7 @@ public class AuthController {
         result.put("email", user.getEmail());
         result.put("fullName", user.getFullName());
         result.put("phoneNumber", user.getPhoneNumber());
-        result.put("role", user.getRole().name());
+        result.put("role", user.getRole().getId());
         result.put("loyaltyPoints", user.getLoyaltyPoints());
         result.put("membershipTier", user.getMembershipTier().name());
         result.put("enabled", user.isEnabled());
@@ -78,7 +121,7 @@ public class AuthController {
             "email", user.getEmail(),
             "fullName", user.getFullName(),
             "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
-            "role", user.getRole().name(),
+            "role", user.getRole().getId(),
             "loyaltyPoints", user.getLoyaltyPoints(),
             "membershipTier", user.getMembershipTier().name()
         ));
@@ -104,7 +147,7 @@ public class AuthController {
         result.put("email", user.getEmail());
         result.put("fullName", user.getFullName());
         result.put("phoneNumber", user.getPhoneNumber());
-        result.put("role", user.getRole().name());
+        result.put("role", user.getRole().getId());
         result.put("loyaltyPoints", user.getLoyaltyPoints());
         result.put("membershipTier", user.getMembershipTier().name());
         return ResponseEntity.ok(result);
@@ -168,6 +211,54 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Xác thực 2 lớp đã được tắt"));
     }
 
+    // ── Password Reset Endpoints ───────────────────────────────────────────
+
+    /** Forgot password — send reset email (public) */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống"));
+        }
+        authService.forgotPassword(email.trim());
+        // Always return success to avoid user enumeration
+        return ResponseEntity.ok(Map.of("message", "Nếu email tồn tại, link đặt lại mật khẩu đã được gửi"));
+    }
+
+    /** Reset password with token (public) */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        String newPassword = body.get("newPassword");
+        if (token == null || token.isBlank() || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        try {
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Mật khẩu đã được đặt lại thành công"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /** Change password (authenticated) */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> body) {
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Dữ liệu không hợp lệ"));
+        }
+        try {
+            authService.changePassword(userDetails.getUsername(), oldPassword, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Mật khẩu đã được thay đổi thành công"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     /** Verify TOTP code during login, return full JWT */
     @PostMapping("/2fa/verify")
     public ResponseEntity<?> verify2FA(@RequestBody Map<String, String> body) {
@@ -181,6 +272,10 @@ public class AuthController {
         if (user == null || user.getTwoFactorSecret() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Tài khoản không hợp lệ"));
+        }
+        if (!user.isEnabled()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", "locked", true));
         }
         if (!twoFactorService.verifyCode(user.getTwoFactorSecret(), code)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

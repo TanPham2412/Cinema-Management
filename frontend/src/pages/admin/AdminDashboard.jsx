@@ -16,7 +16,7 @@ const AdminDashboard = () => {
       title: 'Quản lý Phim',
       description: 'Thêm, sửa, xóa phim',
       icon: Film,
-      link: '/admin/movies',
+      link: '/d57/movies',
       color: 'from-cinema-red to-cinema-red-dark',
       iconBg: 'bg-cinema-red/20',
       iconColor: 'text-cinema-red'
@@ -25,7 +25,7 @@ const AdminDashboard = () => {
       title: 'Quản lý Thể loại',
       description: 'Quản lý thể loại phim',
       icon: Tag,
-      link: '/admin/genres',
+      link: '/d57/genres',
       color: 'from-cinema-gold to-cinema-gold-dark',
       iconBg: 'bg-cinema-gold/20',
       iconColor: 'text-cinema-gold'
@@ -34,7 +34,7 @@ const AdminDashboard = () => {
       title: 'Quản lý Rạp',
       description: 'Thêm, sửa rạp chiếu',
       icon: Building2,
-      link: '/admin/cinemas',
+      link: '/d57/cinemas',
       color: 'from-blue-500 to-blue-600',
       iconBg: 'bg-blue-500/20',
       iconColor: 'text-blue-400'
@@ -43,7 +43,7 @@ const AdminDashboard = () => {
       title: 'Quản lý Suất chiếu',
       description: 'Lập lịch chiếu phim',
       icon: Calendar,
-      link: '/admin/screenings',
+      link: '/d57/screenings',
       color: 'from-purple-500 to-purple-600',
       iconBg: 'bg-purple-500/20',
       iconColor: 'text-purple-400'
@@ -52,7 +52,7 @@ const AdminDashboard = () => {
       title: 'Quản lý Người dùng',
       description: 'Quản lý tài khoản',
       icon: Users,
-      link: '/admin/users',
+      link: '/d57/users',
       color: 'from-green-500 to-green-600',
       iconBg: 'bg-green-500/20',
       iconColor: 'text-green-400'
@@ -61,7 +61,7 @@ const AdminDashboard = () => {
       title: 'Quản lý Đơn hàng',
       description: 'Xem đơn đặt vé',
       icon: Ticket,
-      link: '/admin/bookings',
+      link: '/d57/bookings',
       color: 'from-orange-500 to-orange-600',
       iconBg: 'bg-orange-500/20',
       iconColor: 'text-orange-400'
@@ -70,7 +70,7 @@ const AdminDashboard = () => {
       title: 'Báo cáo Doanh thu',
       description: 'Thống kê và báo cáo',
       icon: DollarSign,
-      link: '/admin/revenue',
+      link: '/d57/revenue',
       color: 'from-emerald-500 to-emerald-600',
       iconBg: 'bg-emerald-500/20',
       iconColor: 'text-emerald-400'
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
       title: 'Cài đặt',
       description: 'Cấu hình hệ thống',
       icon: Settings,
-      link: '/admin/settings',
+      link: '/d57/settings',
       color: 'from-gray-500 to-gray-600',
       iconBg: 'bg-gray-500/20',
       iconColor: 'text-gray-400'

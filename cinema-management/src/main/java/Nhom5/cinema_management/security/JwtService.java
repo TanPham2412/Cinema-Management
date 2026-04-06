@@ -37,6 +37,9 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        // embed role in JWT so backend is authoritative, not localStorage
+        extraClaims.put("role", userDetails.getAuthorities().stream()
+                .findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("CUSTOMER"));
         return Jwts.builder()
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())

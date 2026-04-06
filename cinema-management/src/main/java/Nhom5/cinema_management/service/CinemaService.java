@@ -15,9 +15,12 @@ import Nhom5.cinema_management.model.Seat;
 import Nhom5.cinema_management.repository.CinemaRepository;
 import Nhom5.cinema_management.repository.ScreenRepository;
 import Nhom5.cinema_management.repository.SeatRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CinemaService {
@@ -25,6 +28,29 @@ public class CinemaService {
     private final CinemaRepository cinemaRepository;
     private final SeatRepository seatRepository;
     private final ScreenRepository screenRepository;
+
+    @PostConstruct
+    public void generateMissingSlugs() {
+        List<Cinema> all = cinemaRepository.findAll();
+        for (Cinema cinema : all) {
+            if (cinema.getSlug() == null || cinema.getSlug().isBlank()) {
+                String slug = ensureUniqueSlug(Cinema.generateSlug(cinema.getName()), cinema.getId());
+                cinema.setSlug(slug);
+                cinemaRepository.save(cinema);
+                log.info("Generated slug '{}' for cinema '{}'", slug, cinema.getName());
+            }
+        }
+    }
+
+    private String ensureUniqueSlug(String baseSlug, Long excludeId) {
+        String slug = baseSlug;
+        int suffix = 2;
+        while (true) {
+            Cinema existing = cinemaRepository.findBySlug(slug).orElse(null);
+            if (existing == null || existing.getId().equals(excludeId)) return slug;
+            slug = baseSlug + "-" + suffix++;
+        }
+    }
 
     public List<CinemaDTO> getAllCinemas() {
         return cinemaRepository.findByActiveTrue().stream()
@@ -39,6 +65,12 @@ public class CinemaService {
     public CinemaDTO getCinemaById(Long id) {
         Cinema cinema = cinemaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Cinema not found: " + id));
+        return CinemaDTO.fromEntity(cinema);
+    }
+
+    public CinemaDTO getCinemaBySlug(String slug) {
+        Cinema cinema = cinemaRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Cinema not found: " + slug));
         return CinemaDTO.fromEntity(cinema);
     }
 
@@ -57,8 +89,10 @@ public class CinemaService {
 
     @Transactional
     public CinemaDTO createCinema(Map<String, Object> body) {
+        String name = (String) body.get("name");
         Cinema cinema = Cinema.builder()
-                .name((String) body.get("name"))
+                .name(name)
+                .slug(ensureUniqueSlug(Cinema.generateSlug(name), null))
                 .address((String) body.get("address"))
                 .city((String) body.get("city"))
                 .phoneNumber((String) body.get("phoneNumber"))
@@ -75,6 +109,7 @@ public class CinemaService {
         Cinema cinema = cinemaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Cinema not found: " + id));
         if (body.containsKey("name")) cinema.setName((String) body.get("name"));
+        if (body.containsKey("name")) cinema.setSlug(ensureUniqueSlug(Cinema.generateSlug(cinema.getName()), cinema.getId()));
         if (body.containsKey("address")) cinema.setAddress((String) body.get("address"));
         if (body.containsKey("city")) cinema.setCity((String) body.get("city"));
         if (body.containsKey("phoneNumber")) cinema.setPhoneNumber((String) body.get("phoneNumber"));

@@ -10,7 +10,9 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import Nhom5.cinema_management.model.Role;
 import Nhom5.cinema_management.model.User;
+import Nhom5.cinema_management.repository.RoleRepository;
 import Nhom5.cinema_management.repository.UserRepository;
 import Nhom5.cinema_management.security.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +25,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final RoleRepository roleRepository;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -43,7 +46,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                             .email(email)
                             .fullName(fullName)
                             .password("") // Không có password cho OAuth login
-                            .role(User.Role.CUSTOMER)
+                            .role(roleRepository.findById(Role.CUSTOMER_ID)
+                                    .orElseThrow(() -> new RuntimeException("Role CUSTOMER not found")))
                             .membershipTier(User.MembershipTier.BRONZE)
                             .loyaltyPoints(0)
                             .enabled(true)
@@ -55,6 +59,16 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         // Cập nhật last login
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+
+        // Kiểm tra tài khoản có bị khóa không
+        if (!user.isEnabled()) {
+            String targetUrl = UriComponentsBuilder.fromUriString("https://plvcinema.xyz/auth/google/callback")
+                    .queryParam("locked", "true")
+                    .build()
+                    .toUriString();
+            getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            return;
+        }
 
         // Check 2FA
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {

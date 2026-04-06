@@ -15,10 +15,6 @@ public class SeatSelectionController {
     private final SimpMessagingTemplate messagingTemplate;
     private final SeatHoldStore seatHoldStore;
 
-    /**
-     * Receives seat SELECT/RELEASE events from any client,
-     * updates the in-memory hold store, then broadcasts to all subscribers.
-     */
     @MessageMapping("/seat-selection")
     public void handleSeatSelection(SeatSelectionMessage message) {
         Long screeningId = message.getScreeningId();

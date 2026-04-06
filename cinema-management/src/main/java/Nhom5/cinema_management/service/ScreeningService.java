@@ -18,9 +18,12 @@ import Nhom5.cinema_management.repository.CinemaRepository;
 import Nhom5.cinema_management.repository.MovieRepository;
 import Nhom5.cinema_management.repository.ScreenRepository;
 import Nhom5.cinema_management.repository.ScreeningRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScreeningService {
@@ -29,6 +32,27 @@ public class ScreeningService {
     private final MovieRepository movieRepository;
     private final CinemaRepository cinemaRepository;
     private final ScreenRepository screenRepository;
+
+    @PostConstruct
+    public void generateMissingSlugs() {
+        List<Screening> all = screeningRepository.findAll();
+        for (Screening screening : all) {
+            if (screening.getSlug() == null || screening.getSlug().isBlank()) {
+                String slug = ensureUniqueSlug();
+                screening.setSlug(slug);
+                screeningRepository.save(screening);
+                log.info("Generated slug '{}' for screening id={}", slug, screening.getId());
+            }
+        }
+    }
+
+    private String ensureUniqueSlug() {
+        String slug;
+        do {
+            slug = Screening.generateSlug();
+        } while (screeningRepository.existsBySlug(slug));
+        return slug;
+    }
 
     public List<ScreeningDTO> getScreeningsByMovie(Long movieId) {
         return screeningRepository.findByMovieIdAndActiveTrue(movieId)
@@ -62,12 +86,19 @@ public class ScreeningService {
 
     public List<ScreeningDTO> getAllScreenings() {
         return screeningRepository.findAll().stream()
+                .filter(s -> Boolean.TRUE.equals(s.getActive()))
                 .map(ScreeningDTO::fromEntity).toList();
     }
 
     public ScreeningDTO getScreeningById(Long id) {
         Screening s = screeningRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Screening not found: " + id));
+        return ScreeningDTO.fromEntity(s);
+    }
+
+    public ScreeningDTO getScreeningBySlug(String slug) {
+        Screening s = screeningRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Screening not found: " + slug));
         return ScreeningDTO.fromEntity(s);
     }
 
@@ -101,6 +132,7 @@ public class ScreeningService {
         Screening screening = Screening.builder()
                 .movie(movie)
                 .screen(screen)
+                .slug(ensureUniqueSlug())
                 .startTime(startTime)
                 .endTime(endTime)
                 .basePrice(basePrice)
@@ -122,7 +154,8 @@ public class ScreeningService {
 
         java.util.Set<Long> confirmedSeatIds = s.getBookings() == null ? java.util.Set.of() :
                 s.getBookings().stream()
-                        .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED)
+                        .filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED
+                                  || b.getStatus() == Booking.BookingStatus.COMPLETED)
                         .flatMap(b -> b.getBookingSeats() == null ? java.util.stream.Stream.empty()
                                 : b.getBookingSeats().stream())
                         .map(bs -> bs.getSeat().getId())
@@ -165,6 +198,7 @@ public class ScreeningService {
 
         Map<String, Object> screeningInfo = new java.util.LinkedHashMap<>();
         screeningInfo.put("id", s.getId());
+        screeningInfo.put("slug", s.getSlug());
         screeningInfo.put("movieTitle", movie.getTitle());
         screeningInfo.put("posterUrl", movie.getPosterUrl());
         screeningInfo.put("ageRating", movie.getAgeRating());
@@ -181,6 +215,13 @@ public class ScreeningService {
         screeningInfo.put("availableSeats", s.getAvailableSeats());
 
         return Map.of("screening", screeningInfo, "seats", seats);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getScreeningWithSeatsBySlug(String slug) {
+        Screening s = screeningRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Screening not found: " + slug));
+        return getScreeningWithSeats(s.getId());
     }
 
     @Transactional

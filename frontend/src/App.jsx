@@ -10,6 +10,8 @@ import VNPayReturnPage from './pages/VNPayReturnPage'
 import MoMoReturnPage from './pages/MoMoReturnPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import MovieManagement from './pages/admin/MovieManagement'
@@ -26,6 +28,9 @@ import CinemasPage from './pages/CinemasPage'
 import CinemaDetailPage from './pages/CinemaDetailPage'
 import ProtectedRoute, { UserOnlyRoute } from './components/ProtectedRoute'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler'
+import VerifyEmailPage from './pages/VerifyEmailPage'
+import Chatbox from './components/Chatbox'
+import { R } from './constants/roles'
 
 function App() {
   return (
@@ -35,17 +40,20 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="movies" element={<MoviesPage />} />
-          <Route path="movies/:id" element={<MovieDetailPage />} />
-          <Route path="movies/:id/screenings" element={<ScreeningSelectionPage />} />
+          <Route path="movies/:slug" element={<MovieDetailPage />} />
+          <Route path="movies/:slug/screenings" element={<ScreeningSelectionPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
-          <Route path="cinemas/:id" element={<CinemaDetailPage />} />
-          <Route path="booking/:screeningId" element={<UserOnlyRoute><BookingPage /></UserOnlyRoute>} />
+          <Route path="cinemas/:slug" element={<CinemaDetailPage />} />
+          <Route path="booking/:screeningSlug" element={<UserOnlyRoute><BookingPage /></UserOnlyRoute>} />
           <Route path="booking/confirm" element={<UserOnlyRoute><BookingConfirmPage /></UserOnlyRoute>} />
           <Route path="payment/vnpay/result" element={<UserOnlyRoute><VNPayReturnPage /></UserOnlyRoute>} />
           <Route path="payment/momo/result" element={<UserOnlyRoute><MoMoReturnPage /></UserOnlyRoute>} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="auth/google/callback" element={<OAuth2RedirectHandler />} />
+          <Route path="verify-email" element={<VerifyEmailPage />} />
           
           {/* Protected Routes - User only */}
           <Route
@@ -59,65 +67,65 @@ function App() {
           
           {/* Admin Routes */}
           <Route
-            path="admin"
+            path="d57"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <AdminDashboard />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/movies"
+            path="d57/movies"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <MovieManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/genres"
+            path="d57/genres"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <GenreManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/cinemas"
+            path="d57/cinemas"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <CinemaManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/screenings"
+            path="d57/screenings"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <ScreeningManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/users"
+            path="d57/users"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <UserManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/bookings"
+            path="d57/bookings"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <BookingManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="admin/revenue"
+            path="d57/revenue"
             element={
-              <ProtectedRoute roles={['ADMIN']}>
+              <ProtectedRoute roles={[R.ADMIN]}>
                 <RevenueManagement />
               </ProtectedRoute>
             }
@@ -125,17 +133,17 @@ function App() {
           
           {/* Staff Routes */}
           <Route
-            path="staff/booking/:screeningId"
+            path="d73/booking/:screeningSlug"
             element={
-              <ProtectedRoute roles={['STAFF', 'ADMIN']}>
+              <ProtectedRoute roles={[R.STAFF, R.ADMIN]}>
                 <StaffBookingPage />
               </ProtectedRoute>
             }
           />
           <Route
-            path="staff/*"
+            path="d73/*"
             element={
-              <ProtectedRoute roles={['STAFF', 'ADMIN']}>
+              <ProtectedRoute roles={[R.STAFF, R.ADMIN]}>
                 <StaffDashboard />
               </ProtectedRoute>
             }
@@ -144,6 +152,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      <Chatbox />
     </>
   )
 }

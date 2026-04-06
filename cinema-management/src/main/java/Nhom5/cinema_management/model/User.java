@@ -13,9 +13,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -48,14 +51,17 @@ public class User implements UserDetails {
     
     private String phoneNumber;
     
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.CUSTOMER;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
     
     @Builder.Default
     @Column(nullable = false)
     private Boolean enabled = true;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT TRUE")
+    private Boolean emailVerified = true;
     
     @Builder.Default
     @Column(nullable = false)
@@ -84,7 +90,8 @@ public class User implements UserDetails {
     
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        String roleName = role != null ? role.getName() : "CUSTOMER";
+        return List.of(new SimpleGrantedAuthority("ROLE_" + roleName));
     }
     
     @Override
@@ -110,10 +117,6 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return enabled;
-    }
-    
-    public enum Role {
-        CUSTOMER, STAFF, ADMIN
     }
     
     public enum MembershipTier {

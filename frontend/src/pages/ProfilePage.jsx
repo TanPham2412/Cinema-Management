@@ -6,6 +6,7 @@ import { User, Mail, Phone, Star, Award, Ticket, LogOut, Crown, Calendar, Clock,
 import bookingService from '../services/bookingService'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { R } from '../constants/roles'
 
 const tierConfig = {
   BRONZE:   { label: 'Bronze',   color: 'text-amber-600',  bg: 'bg-amber-600/20',  border: 'border-amber-600',  icon: '🥉', next: 'Silver',   nextPoints: 300   },
@@ -49,6 +50,13 @@ const ProfilePage = () => {
   const [disableTwoFaOpen, setDisableTwoFaOpen] = useState(false)
   const [disableCode, setDisableCode] = useState('')
 
+  // Change password state
+  const [changePwOpen, setChangePwOpen] = useState(false)
+  const [changePwForm, setChangePwForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [changePwLoading, setChangePwLoading] = useState(false)
+  const [changePwError, setChangePwError] = useState('')
+  const [changePwSuccess, setChangePwSuccess] = useState(false)
+
   const handleLogout = () => {
     dispatch(logout())
     navigate('/')
@@ -77,8 +85,8 @@ const ProfilePage = () => {
           const refreshRes = await api.post('/auth/refresh')
           dispatch(setCredentials({ user: refreshRes.data.user, token: refreshRes.data.token }))
           // Redirect to correct dashboard
-          if (fresh.role === 'ADMIN') navigate('/admin')
-          else if (fresh.role === 'STAFF') navigate('/staff')
+          if (fresh.role === R.ADMIN) navigate('/d57')
+          else if (fresh.role === R.STAFF) navigate('/d73')
         } catch {}
       }
     }).catch(() => {})
@@ -159,11 +167,48 @@ const ProfilePage = () => {
   }
   const twoFactorEnabled = displayUser.twoFactorEnabled === true
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    setChangePwError('')
+    setChangePwSuccess(false)
+    if (changePwForm.newPassword.length < 6) {
+      setChangePwError('Mật khẩu mới phải có ít nhất 6 ký tự')
+      return
+    }
+    if (changePwForm.newPassword !== changePwForm.confirmPassword) {
+      setChangePwError('Mật khẩu xác nhận không khớp')
+      return
+    }
+    setChangePwLoading(true)
+    try {
+      await api.post('/auth/change-password', {
+        oldPassword: changePwForm.oldPassword,
+        newPassword: changePwForm.newPassword,
+      })
+      setChangePwSuccess(true)
+      setChangePwForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
+      toast.success('Đổi mật khẩu thành công!')
+    } catch (err) {
+      setChangePwError(err.response?.data?.message || 'Có lỗi xảy ra')
+    } finally {
+      setChangePwLoading(false)
+    }
+  }
+
+  const handleForgotFromProfile = async () => {
+    try {
+      await api.post('/auth/forgot-password', { email: displayUser.email })
+      toast.success('Đã gửi link đổi mật khẩu đến email của bạn!')
+    } catch {
+      toast.error('Có lỗi xảy ra. Vui lòng thử lại.')
+    }
+  }
+
   return (
     <>
-    <div className="min-h-screen bg-cinema-darker py-10">
+    <div className="min-h-screen bg-cinema-darker py-6 sm:py-10">
       <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-3xl font-bold text-white mb-8">Trang cá nhân</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-8">Trang cá nhân</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: User Info */}
@@ -179,12 +224,12 @@ const ProfilePage = () => {
                 {tier.icon} {tier.label}
               </span>
               <div className={`inline-flex items-center gap-1 ml-2 px-3 py-1 rounded-full text-xs font-medium ${
-                displayUser.role === 'ADMIN' ? 'bg-red-500/20 text-red-400 border border-red-500' :
-                displayUser.role === 'STAFF' ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
+                displayUser.role === R.ADMIN ? 'bg-red-500/20 text-red-400 border border-red-500' :
+                displayUser.role === R.STAFF ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
                 'bg-gray-500/20 text-gray-400 border border-gray-500'
               }`}>
                 <Crown className="w-3 h-3" />
-                {displayUser.role === 'ADMIN' ? 'Quản trị viên' : displayUser.role === 'STAFF' ? 'Nhân viên' : 'Thành viên'}
+                {displayUser.role === R.ADMIN ? 'Quản trị viên' : displayUser.role === R.STAFF ? 'Nhân viên' : 'Thành viên'}
               </div>
             </div>
 
@@ -235,6 +280,69 @@ const ProfilePage = () => {
               </div>
             </div>
 
+            {/* Change Password Section */}
+            <div className="bg-cinema-gray rounded-xl p-5 border border-cinema-gray-light space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+                  🔑 Đổi mật khẩu
+                </h3>
+                <button
+                  onClick={() => { setChangePwOpen(!changePwOpen); setChangePwError(''); setChangePwSuccess(false); setChangePwForm({ oldPassword: '', newPassword: '', confirmPassword: '' }) }}
+                  className="text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  {changePwOpen ? 'Thu gọn ▲' : 'Mở rộng ▼'}
+                </button>
+              </div>
+              {changePwOpen && (
+                <div className="pt-1 space-y-3">
+                  {changePwError && (
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-lg px-3 py-2">{changePwError}</div>
+                  )}
+                  {changePwSuccess && (
+                    <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-xs rounded-lg px-3 py-2">✓ Đổi mật khẩu thành công!</div>
+                  )}
+                  <form onSubmit={handleChangePassword} className="space-y-2">
+                    <input
+                      type="password"
+                      placeholder="Mật khẩu hiện tại"
+                      value={changePwForm.oldPassword}
+                      onChange={e => setChangePwForm(p => ({ ...p, oldPassword: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500 transition-colors placeholder:text-gray-600"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+                      value={changePwForm.newPassword}
+                      onChange={e => setChangePwForm(p => ({ ...p, newPassword: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500 transition-colors placeholder:text-gray-600"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Xác nhận mật khẩu mới"
+                      value={changePwForm.confirmPassword}
+                      onChange={e => setChangePwForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500 transition-colors placeholder:text-gray-600"
+                    />
+                    <button
+                      type="submit"
+                      disabled={changePwLoading}
+                      className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg py-2 transition-colors"
+                    >
+                      {changePwLoading ? 'Đang lưu...' : 'Cập nhật mật khẩu'}
+                    </button>
+                  </form>
+                  <div className="border-t border-white/10 pt-2">
+                    <button
+                      onClick={handleForgotFromProfile}
+                      className="w-full text-xs text-gray-400 hover:text-red-400 transition-colors py-1"
+                    >
+                      Không nhớ mật khẩu? Gửi link đặt lại qua email
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 py-3 bg-cinema-gray border border-cinema-gray-light text-gray-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500 rounded-xl transition-colors"
@@ -265,7 +373,7 @@ const ProfilePage = () => {
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <div className="grid grid-cols-5 gap-2 mt-5">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-5">
                 {Object.entries(tierConfig).map(([key, t]) => (
                   <div key={key} className={`text-center p-2 rounded-lg border ${displayUser.membershipTier === key ? `${t.bg} ${t.border}` : 'border-cinema-gray-light'}`}>
                     <div className="text-lg">{t.icon}</div>

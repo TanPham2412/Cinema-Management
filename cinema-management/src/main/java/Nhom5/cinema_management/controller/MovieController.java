@@ -1,5 +1,24 @@
 package Nhom5.cinema_management.controller;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import Nhom5.cinema_management.dto.MovieRequestDTO;
 import Nhom5.cinema_management.dto.MovieResponseDTO;
 import Nhom5.cinema_management.dto.MovieSearchDTO;
@@ -7,16 +26,6 @@ import Nhom5.cinema_management.service.FileStorageService;
 import Nhom5.cinema_management.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/movies")
@@ -40,6 +49,11 @@ public class MovieController {
     @GetMapping("/{id}")
     public ResponseEntity<MovieResponseDTO> getMovieById(@PathVariable Long id) {
         return ResponseEntity.ok(movieService.getMovieById(id));
+    }
+
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<MovieResponseDTO> getMovieBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(movieService.getMovieBySlug(slug));
     }
     
     @GetMapping("/search")

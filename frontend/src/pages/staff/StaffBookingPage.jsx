@@ -56,10 +56,11 @@ function LegendSeat({ color, label }) {
 }
 
 const StaffBookingPage = () => {
-  const { screeningId } = useParams()
+  const { screeningSlug } = useParams()
   const navigate = useNavigate()
   const { user } = useSelector((state) => state.auth)
 
+  const [screeningId, setScreeningId] = useState(null)
   const [seats, setSeats] = useState([])
   const [screeningInfo, setScreeningInfo] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -78,11 +79,12 @@ const StaffBookingPage = () => {
   useEffect(() => { selectedSeatsRef.current = selectedSeats }, [selectedSeats])
 
   useEffect(() => {
+    if (!screeningId) return
     api.get(`/screenings/${screeningId}/held-seats`).then(res => {
       setWsHeldSeats(new Set((res.data || []).map(String)))
     }).catch(() => {})
 
-    websocketService.connect(parseInt(screeningId), (msg) => {
+    websocketService.connect(screeningId, (msg) => {
       const { seatId, action, userId } = msg
       if (userId === user?.email) return
       if (action === 'CONFIRM') {
@@ -99,7 +101,7 @@ const StaffBookingPage = () => {
     return () => {
       if (!bookingCreatedRef.current) {
         selectedSeatsRef.current.forEach(seat => {
-          websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+          websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
         })
       }
       websocketService.disconnect()
@@ -108,13 +110,14 @@ const StaffBookingPage = () => {
 
   useEffect(() => {
     fetchSeats()
-  }, [screeningId]) // eslint-disable-line
+  }, [screeningSlug]) // eslint-disable-line
 
   const fetchSeats = async () => {
     try {
       setLoading(true)
-      const data = await bookingService.getScreeningSeats(screeningId)
+      const data = await bookingService.getScreeningSeatsBySlug(screeningSlug)
       setSeats(data.seats || [])
+      if (data.screening?.id) setScreeningId(data.screening.id)
       const s = data.screening || {}
       const startTime = s.startTime || ''
       setScreeningInfo({
@@ -129,7 +132,7 @@ const StaffBookingPage = () => {
       })
     } catch (e) {
       // If fetch fails, show error and go back
-      navigate('/staff')
+      navigate('/d73')
     } finally {
       setLoading(false)
     }
@@ -149,10 +152,10 @@ const StaffBookingPage = () => {
     const isOwn = selectedSeats.find(s => s.id === seat.id)
     if (seat.status === 'HELD' && !isOwn) return
     if (isOwn) {
-      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'RELEASE', user?.email)
+      websocketService.sendSeatSelection(screeningId, seat.id, 'RELEASE', user?.email)
       setSelectedSeats(prev => prev.filter(s => s.id !== seat.id))
     } else if (selectedSeats.length < 8) {
-      websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'SELECT', user?.email)
+      websocketService.sendSeatSelection(screeningId, seat.id, 'SELECT', user?.email)
       setSelectedSeats(prev => [...prev, seat])
     }
   }
@@ -175,10 +178,10 @@ const StaffBookingPage = () => {
     setBooking(true)
     try {
       selectedSeats.forEach(seat => {
-        websocketService.sendSeatSelection(parseInt(screeningId), seat.id, 'SELECT', user?.email)
+        websocketService.sendSeatSelection(screeningId, seat.id, 'SELECT', user?.email)
       })
       const result = await bookingService.createBooking({
-        screeningId: parseInt(screeningId),
+        screeningId: screeningId,
         seatIds: selectedSeats.map(s => s.id),
         combos: [],
         paymentMethod,
@@ -186,6 +189,11 @@ const StaffBookingPage = () => {
       bookingCreatedRef.current = true
       setBookingResult(result)
       setShowCheckout(false)
+      // Mark booked seats as BOOKED immediately so the map turns red without waiting for WS
+      const bookedIds = new Set(selectedSeats.map(s => String(s.id)))
+      setSeats(prev => prev.map(s => bookedIds.has(String(s.id)) ? { ...s, status: 'BOOKED' } : s))
+      setWsHeldSeats(prev => { const n = new Set(prev); bookedIds.forEach(id => n.delete(id)); return n })
+      setSelectedSeats([])
       setShowSuccess(true)
     } catch (e) {
       alert('Đặt vé thất bại: ' + (e.response?.data?.message || 'Vui lòng thử lại'))
@@ -207,7 +215,7 @@ const StaffBookingPage = () => {
       {/* Header */}
       <div className="bg-cinema-gray border-b border-cinema-gray-light px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <button onClick={() => navigate('/staff')} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => navigate('/d73')} className="text-gray-400 hover:text-white transition-colors">
             <ChevronLeft size={22} />
           </button>
           <div>
@@ -511,7 +519,7 @@ const StaffBookingPage = () => {
                 </div>
               </div>
               <button
-                onClick={() => navigate('/staff')}
+                onClick={() => navigate('/d73')}
                 className="w-full py-3 bg-cinema-red hover:bg-red-700 text-white font-black rounded-xl text-sm transition-colors mt-2"
               >
                 Quay về Dashboard

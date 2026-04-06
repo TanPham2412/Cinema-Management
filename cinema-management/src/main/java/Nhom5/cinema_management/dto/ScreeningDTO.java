@@ -18,6 +18,7 @@ import lombok.Setter;
 @Builder
 public class ScreeningDTO {
     private Long id;
+    private String slug;
     private Long movieId;
     private String movieTitle;
     private String moviePosterUrl;
@@ -43,6 +44,7 @@ public class ScreeningDTO {
     public static ScreeningDTO fromEntity(Screening s) {
         return ScreeningDTO.builder()
                 .id(s.getId())
+                .slug(s.getSlug())
                 .movieId(s.getMovie().getId())
                 .movieTitle(s.getMovie().getTitle())
                 .moviePosterUrl(s.getMovie().getPosterUrl())

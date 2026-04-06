@@ -8,7 +8,6 @@ import java.util.Set;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/screenings")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+
 public class ScreeningController {
 
     private final ScreeningService screeningService;
@@ -49,9 +48,19 @@ public class ScreeningController {
         return ResponseEntity.ok(screeningService.getScreeningById(id));
     }
 
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<ScreeningDTO> getBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(screeningService.getScreeningBySlug(slug));
+    }
+
     @GetMapping("/{id}/seats")
     public ResponseEntity<Map<String, Object>> getSeats(@PathVariable Long id) {
         return ResponseEntity.ok(screeningService.getScreeningWithSeats(id));
+    }
+
+    @GetMapping("/slug/{slug}/seats")
+    public ResponseEntity<Map<String, Object>> getSeatsBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(screeningService.getScreeningWithSeatsBySlug(slug));
     }
 
     /** Returns seat IDs currently held (in-progress selection) by any user for this screening. */

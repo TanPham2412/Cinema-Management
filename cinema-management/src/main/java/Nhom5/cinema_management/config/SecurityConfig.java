@@ -19,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -54,19 +55,36 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Security Headers
+            .headers(headers -> headers
+                .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                .contentTypeOptions(opt -> {})
+                .frameOptions(frame -> frame.deny())
+                .cacheControl(cache -> {})
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                )
+            )
             .authorizeHttpRequests(auth -> auth
-                // Public GET endpoints
+                // Public GET endpoints (read-only data)
                 .requestMatchers(HttpMethod.GET, "/auth/**", "/movies/**", "/cinemas/**", "/screenings/**", "/genres/**", "/reviews/**").permitAll()
-                // Public POST for login/register
-                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify").permitAll()
-                // VNPay endpoints - return, callback & IPN must be public
+                // Public POST for login/register, password reset, and AI Chat
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/2fa/verify", "/auth/forgot-password", "/auth/reset-password", "/auth/resend-verification", "/v1/chat").permitAll()
+                // Email verification
+                .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
+                // Combo public GET only
+                .requestMatchers(HttpMethod.GET, "/combos").permitAll()
+                // VNPay endpoints - return, callback & IPN must be public (server-to-server)
                 .requestMatchers("/payment/vnpay/return", "/payment/vnpay/callback", "/payment/vnpay/ipn").permitAll()
-                // MoMo endpoints - return & notify must be public
-                .requestMatchers("/payment/momo/return", "/payment/momo/notify", "/payment/momo/test-confirm").permitAll()
-                // Reviews - require authentication (any user can review)
+                // MoMo endpoints - return & notify must be public (server-to-server)
+                .requestMatchers("/payment/momo/return", "/payment/momo/notify").permitAll()
+                // Payment creation requires auth
+                .requestMatchers("/payment/**").authenticated()
+                // Reviews POST/PUT/DELETE require authentication
                 .requestMatchers("/reviews/**").authenticated()
                 // WebSocket and uploads
-                .requestMatchers("/ws/**", "/uploads/**").permitAll()
+                .requestMatchers("/ws/**", "/ws-sockjs/**", "/uploads/**").permitAll()
                 // OAuth2
                 .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
                 // Admin routes require ADMIN role
@@ -93,10 +111,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://plvcinema.xyz", "https://www.plvcinema.xyz"));
+        configuration.setAllowedOrigins(Arrays.asList(
+            "https://plvcinema.xyz",
+            "https://www.plvcinema.xyz",
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

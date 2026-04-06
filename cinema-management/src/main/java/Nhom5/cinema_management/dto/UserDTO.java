@@ -15,7 +15,7 @@ public class UserDTO {
     private String email;
     private String fullName;
     private String phoneNumber;
-    private String role;
+    private Long role;
     private Integer loyaltyPoints;
     private String membershipTier;
     
@@ -25,7 +25,7 @@ public class UserDTO {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole().name())
+                .role(user.getRole() != null ? user.getRole().getId() : null)
                 .loyaltyPoints(user.getLoyaltyPoints())
                 .membershipTier(user.getMembershipTier().name())
                 .build();

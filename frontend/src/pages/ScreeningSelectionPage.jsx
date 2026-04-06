@@ -137,7 +137,7 @@ const generateMockScreenings = (duration = 101) => {
 const DAY_NAMES = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
 
 const ScreeningSelectionPage = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
 
   const [movie, setMovie] = useState(null);
@@ -156,15 +156,15 @@ const ScreeningSelectionPage = () => {
   useEffect(() => {
     setSelectedDate(dates[0]);
     loadData();
-  }, [id]);
+  }, [slug]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const movieData = await movieService.getMovieById(id);
+      const movieData = await movieService.getMovieBySlug(slug);
       setMovie(movieData);
       try {
-        const data = await movieService.getScreenings(id);
+        const data = await movieService.getScreenings(movieData.id);
         const list = Array.isArray(data) ? data : (data.content || []);
         setScreenings(list.length > 0 ? list : generateMockScreenings(movieData.duration));
       } catch {
@@ -383,7 +383,7 @@ const ScreeningSelectionPage = () => {
                         <button
                           key={s.id}
                           disabled={noSeats}
-                          onClick={() => !noSeats && navigate(`/booking/${s.id}`)}
+                          onClick={() => !noSeats && navigate(`/booking/${s.slug}`)}
                           className={`flex flex-col items-center px-3.5 py-2.5 rounded-xl border-2 transition-all active:scale-95 ${
                             noSeats
                               ? 'border-gray-700/60 bg-gray-800/30 text-gray-600 cursor-not-allowed'

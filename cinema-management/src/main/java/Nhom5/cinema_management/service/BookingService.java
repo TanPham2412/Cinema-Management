@@ -1,5 +1,6 @@
 package Nhom5.cinema_management.service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -46,9 +48,46 @@ public class BookingService {
     private final SeatHoldStore seatHoldStore;
     private final ComboRepository comboRepository;
     private final BookingComboRepository bookingComboRepository;
+    private final EmailService emailService;
+    private final StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * Acquires a per-seat Redis distributed lock before processing the booking,
+     * then delegates to the @Transactional createBookingTx() method.
+     *
+     * Lock key:  seat:lock:{screeningId}:{seatId}
+     * TTL:       30 seconds (auto-expire if the server crashes mid-request)
+     * Strategy:  seats are sorted before locking to avoid deadlocks when two
+     *            users select overlapping sets of seats simultaneously.
+     */
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request, String userEmail) {
+        List<String> lockKeys = request.getSeatIds().stream()
+                .sorted()
+                .map(id -> "seat:lock:" + request.getScreeningId() + ":" + id)
+                .collect(Collectors.toList());
+
+        List<String> acquired = new ArrayList<>();
+        try {
+            for (String lockKey : lockKeys) {
+                Boolean ok = stringRedisTemplate.opsForValue()
+                        .setIfAbsent(lockKey, userEmail, Duration.ofSeconds(30));
+                if (!Boolean.TRUE.equals(ok)) {
+                    throw new IllegalStateException(
+                            "Ghế đang được người khác xử lý, vui lòng thử lại sau");
+                }
+                acquired.add(lockKey);
+            }
+            return createBookingTx(request, userEmail);
+        } finally {
+            if (!acquired.isEmpty()) {
+                stringRedisTemplate.delete(acquired);
+            }
+        }
+    }
+
+    @Transactional
+    public BookingResponseDTO createBookingTx(BookingRequestDTO request, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userEmail));
 
@@ -214,7 +253,35 @@ public class BookingService {
         screening.setAvailableSeats(screening.getAvailableSeats() - seats.size());
         screeningRepository.save(screening);
 
-        return BookingResponseDTO.fromEntity(bookingRepository.save(savedBooking));
+        Booking finalBooking = bookingRepository.save(savedBooking);
+
+        // For non-gateway payments (CASH/BANK), booking is immediately CONFIRMED:
+        //   1. Broadcast CONFIRM so all other users see the seat turn red immediately
+        //   2. Send confirmation email
+        if (!isGatewayPayment) {
+            try {
+                Long screeningId = screening.getId();
+                for (Seat seat : seats) {
+                    String seatId = String.valueOf(seat.getId());
+                    seatHoldStore.release(screeningId, seatId);
+                    java.util.Map<String, Object> wsMsg = new java.util.HashMap<>();
+                    wsMsg.put("screeningId", screeningId);
+                    wsMsg.put("seatId", seat.getId());
+                    wsMsg.put("action", "CONFIRM");
+                    wsMsg.put("userId", userEmail);
+                    messagingTemplate.convertAndSend("/topic/seats/" + screeningId, (Object) wsMsg);
+                }
+            } catch (Exception wsErr) {
+                // WS broadcast failure must never roll back the booking transaction
+            }
+            try {
+                emailService.sendBookingConfirmationEmail(finalBooking);
+            } catch (Exception e) {
+                // Email failure must never break the booking flow
+            }
+        }
+
+        return BookingResponseDTO.fromEntity(finalBooking);
     }
 
     public Page<BookingResponseDTO> getAdminBookings(
@@ -272,6 +339,11 @@ public class BookingService {
             throw new IllegalStateException("Vé đã được hủy trước đó");
         }
 
+        // Only reverse loyalty points if booking was CONFIRMED/COMPLETED
+        // (points were actually applied). For PENDING bookings, points were never applied.
+        boolean wasConfirmed = booking.getStatus() == Booking.BookingStatus.CONFIRMED
+                            || booking.getStatus() == Booking.BookingStatus.COMPLETED;
+
         booking.setStatus(Booking.BookingStatus.CANCELLED);
 
         // Restore available seats
@@ -280,10 +352,12 @@ public class BookingService {
         screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
         screeningRepository.save(screening);
 
-        // Restore loyalty points used
-        User user = booking.getUser();
-        user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
-        userRepository.save(user);
+        if (wasConfirmed) {
+            User user = booking.getUser();
+            user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
+            user.setMembershipTier(calculateTier(user.getLoyaltyPoints()));
+            userRepository.save(user);
+        }
 
         BookingResponseDTO result = BookingResponseDTO.fromEntity(bookingRepository.save(booking));
 
@@ -366,6 +440,67 @@ public class BookingService {
             case DIAMOND  -> 0.20;
             default       -> 0;
         };
+    }
+
+    // ── Admin CRUD Methods ─────────────────────────────────────────────────
+
+    /**
+     * Admin updates booking status. When setting to CANCELLED, restores seats and points.
+     */
+    @Transactional
+    public BookingResponseDTO adminUpdateStatus(Long bookingId, String newStatusStr) {
+        Booking booking = bookingRepository.findByIdWithSeats(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingId));
+
+        Booking.BookingStatus targetStatus = Booking.BookingStatus.valueOf(newStatusStr.toUpperCase());
+        Booking.BookingStatus currentStatus = booking.getStatus();
+
+        // Restore seats and points when cancelling a non-cancelled booking
+        if (targetStatus == Booking.BookingStatus.CANCELLED
+                && currentStatus != Booking.BookingStatus.CANCELLED
+                && currentStatus != Booking.BookingStatus.EXPIRED) {
+            Screening screening = booking.getScreening();
+            int seatCount = booking.getBookingSeats() == null ? 0 : booking.getBookingSeats().size();
+            screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
+            screeningRepository.save(screening);
+
+            // Only reverse points if booking was CONFIRMED/COMPLETED (points were applied)
+            if (currentStatus == Booking.BookingStatus.CONFIRMED
+                    || currentStatus == Booking.BookingStatus.COMPLETED) {
+                User user = booking.getUser();
+                user.setLoyaltyPoints(user.getLoyaltyPoints() + booking.getPointsUsed() - booking.getPointsEarned());
+                user.setMembershipTier(calculateTier(user.getLoyaltyPoints()));
+                userRepository.save(user);
+            }
+        }
+
+        booking.setStatus(targetStatus);
+        return BookingResponseDTO.fromEntity(bookingRepository.save(booking));
+    }
+
+    /**
+     * Admin hard-deletes a booking. Cascade-safe: only removes booking domain records,
+     * never touches screenings, movies, seats, or users table rows.
+     */
+    @Transactional
+    public void adminDeleteBooking(Long bookingId) {
+        Booking booking = bookingRepository.findByIdWithSeats(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingId));
+
+        // Restore seats if not already cancelled/expired
+        if (booking.getStatus() != Booking.BookingStatus.CANCELLED
+                && booking.getStatus() != Booking.BookingStatus.EXPIRED) {
+            Screening screening = booking.getScreening();
+            int seatCount = booking.getBookingSeats() == null ? 0 : booking.getBookingSeats().size();
+            screening.setAvailableSeats(screening.getAvailableSeats() + seatCount);
+            screeningRepository.save(screening);
+        }
+
+        // Manually delete booking_combos (not cascaded on Booking entity)
+        bookingComboRepository.deleteAll(bookingComboRepository.findByBookingId(bookingId));
+
+        // Delete booking — JPA cascade ALL removes booking_seats and payment
+        bookingRepository.delete(booking);
     }
 
     private String generateBookingCode() {

@@ -43,6 +43,7 @@ public class VNPayService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final SeatHoldStore seatHoldStore;
+    private final EmailService emailService;
 
     /**
      * Generate VNPay payment URL for a booking
@@ -154,6 +155,21 @@ public class VNPayService {
         Booking booking = bookingRepository.findByBookingCodeWithSeats(bookingCode)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found: " + bookingCode));
 
+        // Idempotency: if already confirmed/cancelled, just re-broadcast and return
+        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
+            log.info("[VNPay] Booking {} already CONFIRMED, re-broadcasting CONFIRM", bookingCode);
+            try { broadcastSeatUpdate(booking, "CONFIRM"); } catch (Exception ignored) {}
+            return;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            log.info("[VNPay] Booking {} already CANCELLED, skipping", bookingCode);
+            return;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.EXPIRED) {
+            log.warn("[VNPay] Booking {} already EXPIRED, rejecting late payment", bookingCode);
+            return;
+        }
+
         Payment payment = paymentRepository.findByBookingId(booking.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Payment not found for booking: " + bookingCode));
 
@@ -191,6 +207,15 @@ public class VNPayService {
             broadcastSeatUpdate(booking, success ? "CONFIRM" : "RELEASE");
         } catch (Exception wsErr) {
             log.error("WS broadcast failed for booking {}: {}", bookingCode, wsErr.getMessage(), wsErr);
+        }
+
+        // Send booking confirmation email asynchronously
+        if (success) {
+            try {
+                emailService.sendBookingConfirmationEmail(booking);
+            } catch (Exception e) {
+                log.error("Failed to send confirmation email for booking {}: {}", bookingCode, e.getMessage());
+            }
         }
     }
 

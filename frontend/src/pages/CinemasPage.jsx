@@ -35,18 +35,18 @@ const CinemasPage = () => {
   return (
     <div className="min-h-screen bg-cinema-darker">
       {/* Hero */}
-      <div className="bg-gradient-to-b from-cinema-dark to-cinema-darker py-14 border-b border-cinema-gray-light">
+      <div className="bg-gradient-to-b from-cinema-dark to-cinema-darker py-8 sm:py-14 border-b border-cinema-gray-light">
         <div className="container mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-4">
             <Building2 className="w-4 h-4 text-blue-400" />
             <span className="text-blue-400 text-sm font-medium">Hệ thống rạp chiếu phim</span>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3">Rạp chiếu phim</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3">Rạp chiếu phim</h1>
           <p className="text-gray-400 max-w-md mx-auto">Tìm rạp gần bạn và đặt vé ngay hôm nay</p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1 max-w-sm">
@@ -76,7 +76,7 @@ const CinemasPage = () => {
 
         {/* Loading */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="animate-pulse bg-cinema-gray rounded-2xl h-52 border border-cinema-gray-light" />
             ))}
@@ -88,12 +88,12 @@ const CinemasPage = () => {
             <p className="text-gray-600 text-sm mt-1">Thử thay đổi từ khóa tìm kiếm</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filtered.map(cinema => (
               <div
                 key={cinema.id}
                 className="group bg-cinema-gray rounded-2xl border border-cinema-gray-light hover:border-blue-500/50 transition-all duration-300 overflow-hidden cursor-pointer"
-                onClick={() => navigate(`/cinemas/${cinema.id}`)}
+                onClick={() => navigate(`/cinemas/${cinema.slug}`)}
               >
                 {/* Color top bar */}
                 <div className="h-1.5 bg-gradient-to-r from-blue-500 to-blue-700" />

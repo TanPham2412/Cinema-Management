@@ -9,7 +9,7 @@ import MovieReviews from '../components/MovieReviews';
 import ScreeningModal from '../components/ScreeningModal';
 
 const MovieDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,12 +18,12 @@ const MovieDetail = () => {
 
   useEffect(() => {
     fetchMovieDetail();
-  }, [id]);
+  }, [slug]);
 
   const fetchMovieDetail = async () => {
     try {
       setLoading(true);
-      const data = await movieService.getMovieById(id);
+      const data = await movieService.getMovieBySlug(slug);
       setMovie(data);
     } catch (err) {
       console.error('Error fetching movie:', err);
@@ -91,7 +91,7 @@ const MovieDetail = () => {
     <div className="min-h-screen bg-gradient-to-b from-cinema-darker via-cinema-dark to-cinema-darker pb-28">
       {/* Banner */}
       {movie.bannerUrl && (
-        <div className="relative h-96 overflow-hidden">
+        <div className="relative h-48 sm:h-72 md:h-96 overflow-hidden">
           <img 
             src={`/api${movie.bannerUrl}`}
             alt={movie.title}
@@ -101,7 +101,7 @@ const MovieDetail = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-6 pb-12 -mt-32 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-12 -mt-16 sm:-mt-24 md:-mt-32 relative z-10">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
@@ -114,7 +114,7 @@ const MovieDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Poster */}
           <div className="lg:col-span-1">
-            <div className="bg-black/50 rounded-lg overflow-hidden shadow-2xl sticky top-6">
+            <div className="max-w-[260px] mx-auto lg:max-w-none bg-black/50 rounded-lg overflow-hidden shadow-2xl sticky top-6">
               {movie.posterUrl ? (
                 <img 
                   src={`/api${movie.posterUrl}`}
@@ -132,13 +132,13 @@ const MovieDetail = () => {
           {/* Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Title & Rating */}
-            <div className="bg-black/50 rounded-lg p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h1 className="text-4xl font-bold text-white">{movie.title}</h1>
+            <div className="bg-black/50 rounded-lg p-4 sm:p-6">
+              <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-2">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{movie.title}</h1>
                 {getStatusBadge(movie.status)}
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-gray-300">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-gray-300 text-sm sm:text-base">
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-[#d4af37] fill-[#d4af37]" />
                   <span className="text-xl font-semibold text-white">
@@ -179,13 +179,13 @@ const MovieDetail = () => {
             </div>
 
             {/* Description */}
-            <div className="bg-black/50 rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">Tóm tắt</h2>
+            <div className="bg-black/50 rounded-lg p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Tóm tắt</h2>
               <p className="text-gray-300 leading-relaxed">{movie.description}</p>
             </div>
 
             {/* Details */}
-            <div className="bg-black/50 rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-black/50 rounded-lg p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-2 text-gray-400 mb-2">
                   <Film className="w-5 h-5" />
@@ -230,8 +230,8 @@ const MovieDetail = () => {
 
             {/* Trailer */}
             {movie.trailerUrl && (
-              <div className="bg-black/50 rounded-lg p-6">
-                <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <div className="bg-black/50 rounded-lg p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
                   <Play className="w-6 h-6 text-cinema-red" />
                   Trailer
                 </h2>
@@ -260,7 +260,7 @@ const MovieDetail = () => {
           <div className="bg-gradient-to-t from-cinema-darker via-cinema-darker/95 to-transparent pt-8 pb-5 px-4">
             <button
               onClick={() => setShowBookModal(true)}
-              className="w-full max-w-2xl mx-auto flex items-center justify-center py-4 bg-cinema-red hover:bg-red-700 active:scale-95 text-white text-xl font-bold rounded-xl transition-all shadow-2xl pointer-events-auto"
+              className="w-full max-w-2xl mx-auto flex items-center justify-center py-3 sm:py-4 bg-cinema-red hover:bg-red-700 active:scale-95 text-white text-lg sm:text-xl font-bold rounded-xl transition-all shadow-2xl pointer-events-auto"
             >
               Mua vé
             </button>
@@ -271,7 +271,7 @@ const MovieDetail = () => {
       {/* Screening Modal */}
       {showBookModal && (
         <ScreeningModal
-          movieId={id}
+          movieId={movie.id}
           movieTitle={movie.title}
           movieDuration={movie.duration}
           moviePosterUrl={movie.posterUrl}

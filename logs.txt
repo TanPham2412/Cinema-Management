@@ -1,0 +1,181 @@
+﻿cinema-backend  | 
+cinema-backend  |   .   ____          _            __ _ _
+cinema-backend  |  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+cinema-backend  | ( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+cinema-backend  |  \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+cinema-backend  |   '  |____| .__|_| |_|_| |_\__, | / / / /
+cinema-backend  |  =========|_|==============|___/=/_/_/_/
+cinema-backend  | 
+cinema-backend  |  :: Spring Boot ::                (v4.0.2)
+cinema-backend  | 
+cinema-backend  | 2026-03-31T05:45:09.401Z  INFO 1 --- [cinema-management] [           main] N.c.CinemaManagementApplication          : Starting CinemaManagementApplication v0.0.1-SNAPSHOT using Java 21.0.10 with PID 1 (/app/app.jar started by root in /app)
+cinema-backend  | 2026-03-31T05:45:09.410Z DEBUG 1 --- [cinema-management] [           main] N.c.CinemaManagementApplication          : Running with Spring Boot v4.0.2, Spring v7.0.3
+cinema-backend  | 2026-03-31T05:45:09.412Z  INFO 1 --- [cinema-management] [           main] N.c.CinemaManagementApplication          : No active profile set, falling back to 1 default profile: "default"
+cinema-backend  | 2026-03-31T05:45:10.617Z  INFO 1 --- [cinema-management] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+cinema-backend  | 2026-03-31T05:45:10.623Z  INFO 1 --- [cinema-management] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+cinema-backend  | 2026-03-31T05:45:10.786Z  INFO 1 --- [cinema-management] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 153 ms. Found 12 JPA repository interfaces.
+cinema-backend  | 2026-03-31T05:45:11.718Z  INFO 1 --- [cinema-management] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8081 (http)
+cinema-backend  | 2026-03-31T05:45:11.735Z  INFO 1 --- [cinema-management] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+cinema-backend  | 2026-03-31T05:45:11.735Z  INFO 1 --- [cinema-management] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.15]
+cinema-backend  | 2026-03-31T05:45:11.771Z  INFO 1 --- [cinema-management] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2231 ms
+cinema-backend  | 2026-03-31T05:45:11.931Z  INFO 1 --- [cinema-management] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+cinema-backend  | 2026-03-31T05:45:12.017Z  INFO 1 --- [cinema-management] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.1.Final
+cinema-backend  | 2026-03-31T05:45:12.636Z  INFO 1 --- [cinema-management] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+cinema-backend  | 2026-03-31T05:45:12.666Z  INFO 1 --- [cinema-management] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+cinema-backend  | 2026-03-31T05:45:12.836Z  INFO 1 --- [cinema-management] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@54e18a46
+cinema-backend  | 2026-03-31T05:45:12.839Z  INFO 1 --- [cinema-management] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+cinema-backend  | 2026-03-31T05:45:12.898Z  WARN 1 --- [cinema-management] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+cinema-backend  | 2026-03-31T05:45:12.928Z  INFO 1 --- [cinema-management] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+cinema-backend  | 	Database JDBC URL [jdbc:mysql://mysql:3306/cinema_management?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
+cinema-backend  | 	Database driver: MySQL Connector/J
+cinema-backend  | 	Database dialect: MySQLDialect
+cinema-backend  | 	Database version: 8.0.45
+cinema-backend  | 	Default catalog/schema: cinema_management/undefined
+cinema-backend  | 	Autocommit mode: undefined/unknown
+cinema-backend  | 	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+cinema-backend  | 	JDBC fetch size: none
+cinema-backend  | 	Pool: DataSourceConnectionProvider
+cinema-backend  | 	Minimum pool size: undefined/unknown
+cinema-backend  | 	Maximum pool size: undefined/unknown
+cinema-backend  | 2026-03-31T05:45:14.351Z  INFO 1 --- [cinema-management] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+cinema-backend  | 2026-03-31T05:45:14.445Z  INFO 1 --- [cinema-management] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+cinema-backend  | 2026-03-31T05:45:14.594Z  INFO 1 --- [cinema-management] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+cinema-backend  | 2026-03-31T05:45:15.682Z DEBUG 1 --- [cinema-management] [           main] N.c.security.JwtAuthenticationFilter     : Filter 'jwtAuthenticationFilter' configured for use
+cinema-backend  | 2026-03-31T05:45:16.218Z  INFO 1 --- [cinema-management] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+cinema-backend  | 2026-03-31T05:45:16.218Z  WARN 1 --- [cinema-management] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+cinema-backend  | 2026-03-31T05:45:17.232Z  WARN 1 --- [cinema-management] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+cinema-backend  | 2026-03-31T05:45:17.477Z DEBUG 1 --- [cinema-management] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, OAuth2AuthorizationRequestRedirectFilter, OAuth2LoginAuthenticationFilter, JwtAuthenticationFilter, DefaultResourcesFilter, DefaultLoginPageGeneratingFilter, DefaultLogoutPageGeneratingFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+cinema-backend  | 2026-03-31T05:45:18.080Z  INFO 1 --- [cinema-management] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+cinema-backend  | 2026-03-31T05:45:18.080Z  INFO 1 --- [cinema-management] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@4f7e0ea7]]
+cinema-backend  | 2026-03-31T05:45:18.081Z  INFO 1 --- [cinema-management] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+cinema-backend  | 2026-03-31T05:45:18.093Z  INFO 1 --- [cinema-management] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8081 (http) with context path '/api'
+cinema-backend  | 2026-03-31T05:45:18.106Z  INFO 1 --- [cinema-management] [           main] N.c.CinemaManagementApplication          : Started CinemaManagementApplication in 9.301 seconds (process running for 10.088)
+cinema-backend  | 2026-03-31T05:45:33.916Z  INFO 1 --- [cinema-management] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/api]    : Initializing Spring DispatcherServlet 'dispatcherServlet'
+cinema-backend  | 2026-03-31T05:45:33.916Z  INFO 1 --- [cinema-management] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+cinema-backend  | 2026-03-31T05:45:33.918Z  INFO 1 --- [cinema-management] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+cinema-backend  | 2026-03-31T05:45:33.930Z DEBUG 1 --- [cinema-management] [nio-8081-exec-1] o.s.security.web.FilterChainProxy        : Securing OPTIONS /v1/chat
+cinema-backend  | 2026-03-31T05:45:33.961Z DEBUG 1 --- [cinema-management] [nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Securing POST /v1/chat
+cinema-backend  | 2026-03-31T05:45:33.965Z DEBUG 1 --- [cinema-management] [nio-8081-exec-2] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+cinema-backend  | 2026-03-31T05:45:33.967Z DEBUG 1 --- [cinema-management] [nio-8081-exec-2] o.s.security.web.FilterChainProxy        : Secured POST /v1/chat
+cinema-backend  | 2026-03-31T05:45:34.784Z ERROR 1 --- [cinema-management] [nio-8081-exec-2] N.cinema_management.service.ChatService  : Lß╗ùi giao tiß║┐p vß╗¢i Gemini API
+cinema-backend  | 
+cinema-backend  | org.springframework.web.client.HttpClientErrorException$NotFound: 404 Not Found on POST request for "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent": "{<EOL>  "error": {<EOL>    "code": 404,<EOL>    "message": "models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",<EOL>    "status": "NOT_FOUND"<EOL>  }<EOL>}<EOL>"
+cinema-backend  | 	at org.springframework.web.client.HttpClientErrorException.create(HttpClientErrorException.java:115) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.client.DefaultResponseErrorHandler.handleError(DefaultResponseErrorHandler.java:145) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.client.DefaultResponseErrorHandler.handleError(DefaultResponseErrorHandler.java:120) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.client.RestTemplate.handleResponse(RestTemplate.java:807) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:756) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:677) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.client.RestTemplate.postForObject(RestTemplate.java:401) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at Nhom5.cinema_management.service.ChatService.generateResponse(ChatService.java:76) ~[!/:0.0.1-SNAPSHOT]
+cinema-backend  | 	at Nhom5.cinema_management.controller.ChatController.processChatMessage(ChatController.java:20) ~[!/:0.0.1-SNAPSHOT]
+cinema-backend  | 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source) ~[na:na]
+cinema-backend  | 	at java.base/java.lang.reflect.Method.invoke(Unknown Source) ~[na:na]
+cinema-backend  | 	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:190) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:117) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:934) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:853) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:86) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:963) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:866) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1003) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:903) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:649) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:874) ~[spring-webmvc-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:710) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:128) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:53) ~[tomcat-embed-websocket-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:110) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:108) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy.lambda$doFilterInternal$3(FilterChainProxy.java:235) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:371) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.access.intercept.AuthorizationFilter.doFilter(AuthorizationFilter.java:101) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:126) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.session.SessionManagementFilter.doFilter(SessionManagementFilter.java:132) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.session.SessionManagementFilter.doFilter(SessionManagementFilter.java:86) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:181) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.ui.DefaultLogoutPageGeneratingFilter.doFilterInternal(DefaultLogoutPageGeneratingFilter.java:60) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter.doFilter(DefaultLoginPageGeneratingFilter.java:246) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter.doFilter(DefaultLoginPageGeneratingFilter.java:232) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.ui.DefaultResourcesFilter.doFilter(DefaultResourcesFilter.java:73) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at Nhom5.cinema_management.security.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:38) ~[!/:0.0.1-SNAPSHOT]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:245) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:239) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter.doFilterInternal(OAuth2AuthorizationRequestRedirectFilter.java:195) ~[spring-security-oauth2-client-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:110) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:96) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:380) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:237) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:195) ~[spring-security-web-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.ServletRequestPathFilter.doFilter(ServletRequestPathFilter.java:52) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.CompositeFilter.doFilter(CompositeFilter.java:74) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration$CompositeFilterChainProxy.doFilter(WebSecurityConfiguration.java:317) ~[spring-security-config-7.0.2.jar!/:7.0.2]
+cinema-backend  | 	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:355) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:272) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:199) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-7.0.3.jar!/:7.0.3]
+cinema-backend  | 	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:77) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:341) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:397) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1778) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.15.jar!/:na]
+cinema-backend  | 	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+cinema-backend  | 
+cinema-backend  | 2026-03-31T05:46:18.083Z  INFO 1 --- [cinema-management] [MessageBroker-2] o.s.w.s.c.WebSocketMessageBrokerStats    : WebSocketSession[0 current WS(0)-HttpStream(0)-HttpPoll(0), 0 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(0)-CONNECTED(0)-DISCONNECT(0)], stompBrokerRelay[null], inboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], outboundChannel[pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0], sockJsScheduler[pool size = 3, active threads = 1, queued tasks = 1, completed tasks = 1]

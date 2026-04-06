@@ -86,7 +86,7 @@ const ScreeningModal = ({
 
   const handleSelectScreening = (s) => {
     onClose();
-    navigate(`/booking/${s.id}`, {
+    navigate(`/booking/${s.slug}`, {
       state: {
         movieId, movieTitle, movieDuration,
         moviePosterUrl, movieGenres, movieRating,
@@ -111,7 +111,7 @@ const ScreeningModal = ({
       <div className="relative w-full max-w-2xl max-h-[92vh] sm:max-h-[86vh] flex flex-col bg-cinema-dark rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {selectedCinema && (
               <button
@@ -139,7 +139,7 @@ const ScreeningModal = ({
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center gap-0 px-5 pt-3 pb-2 shrink-0">
+        <div className="flex items-center gap-0 px-4 sm:px-5 pt-3 pb-2 shrink-0">
           {['Phim', 'Rạp', 'Suất chiếu'].map((label, i) => {
             const step = i; // 0=phim(done), 1=rap, 2=suat
             const done    = step === 0 || (step === 1 && selectedCinema);
@@ -166,7 +166,7 @@ const ScreeningModal = ({
 
         {/* STEP 1: CINEMA LIST */}
         {!selectedCinema && (
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 space-y-2">
             {loadingCinemas ? (
               <div className="space-y-3 pt-2">
                 {[1, 2, 3].map(i => (
@@ -231,7 +231,7 @@ const ScreeningModal = ({
                   <button
                     key={date}
                     onClick={() => setSelectedDate(date)}
-                    className={`flex-shrink-0 flex flex-col items-center pt-3 pb-2.5 px-5 border-b-[3px] transition-colors ${
+                    className={`flex-shrink-0 flex flex-col items-center pt-2 pb-2 sm:pt-3 sm:pb-2.5 px-3 sm:px-5 border-b-[3px] transition-colors ${
                       active
                         ? 'border-cinema-red text-cinema-red'
                         : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -249,7 +249,7 @@ const ScreeningModal = ({
             </div>
 
             {/* Screening slots */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
               {screenings.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">
                   <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -262,7 +262,7 @@ const ScreeningModal = ({
                     <Users className="w-3.5 h-3.5" />
                     {screenings.length} suất chiếu
                   </p>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-3">
                     {screenings
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map(s => {
@@ -273,7 +273,7 @@ const ScreeningModal = ({
                             key={s.id}
                             disabled={noSeats}
                             onClick={() => !noSeats && handleSelectScreening(s)}
-                            className={`flex flex-col items-center justify-center px-5 py-3 rounded-xl border-2 min-w-[88px] transition-all active:scale-95 ${
+                            className={`flex flex-col items-center justify-center px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl border-2 sm:min-w-[88px] transition-all active:scale-95 ${
                               noSeats
                                 ? 'border-white/5 bg-white/5 text-gray-600 cursor-not-allowed'
                                 : 'border-white/10 bg-white/5 hover:border-cinema-red hover:bg-cinema-red/10 text-white'

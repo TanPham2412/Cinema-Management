@@ -54,9 +54,11 @@ public class MoMoController {
         String message = params.getOrDefault("message", "");
 
         boolean validSignature = moMoService.verifySignature(params);
+        boolean dbSuccess = false;
         if (validSignature) {
             try {
                 moMoService.confirmPayment(orderId, transId, resultCode, message);
+                dbSuccess = true;
             } catch (Exception e) {
                 log.error("[MoMo] Error confirming payment for booking {}: {}", orderId, e.getMessage());
             }
@@ -65,7 +67,7 @@ public class MoMoController {
             resultCode = "-1";
         }
 
-        boolean success = "0".equals(resultCode);
+        boolean success = "0".equals(resultCode) && dbSuccess;
         String redirectUrl = moMoConfig.getFrontendResultUrl()
                 + "?success=" + success
                 + "&bookingCode=" + orderId
@@ -75,22 +77,20 @@ public class MoMoController {
     }
 
     /**
-     * [DEV/TEST ONLY] Manually confirm a MoMo booking without real payment.
-     * Use this to simulate a successful payment during local development.
-     * Example: GET /payment/momo/test-confirm?bookingCode=BK123...
+     * Sandbox test-confirm: frontend calls this to confirm payment locally
+     * when MoMo IPN can't reach localhost.
      */
     @GetMapping("/test-confirm")
-    public ResponseEntity<Map<String, Object>> testConfirm(
-            @RequestParam String bookingCode) {
+    public ResponseEntity<Map<String, Object>> testConfirm(@RequestParam String bookingCode) {
         Map<String, Object> result = new HashMap<>();
         try {
-            moMoService.confirmPayment(bookingCode, "TEST-" + System.currentTimeMillis(), "0", "Test success");
+            moMoService.confirmPayment(bookingCode, "test-txn-" + System.currentTimeMillis(), "0", "Sandbox test confirm");
             result.put("success", true);
             result.put("bookingCode", bookingCode);
         } catch (Exception e) {
+            log.error("[MoMo] test-confirm error for {}: {}", bookingCode, e.getMessage());
             result.put("success", false);
             result.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(result);
         }
         return ResponseEntity.ok(result);
     }
