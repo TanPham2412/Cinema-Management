@@ -19,6 +19,7 @@ const RegisterPage = () => {
   const [pendingEmail, setPendingEmail] = useState('')
   const [resending, setResending] = useState(false)
   const pollInterval = useRef(null)
+  const localPollKey = useRef(null) // survives Redux reset()
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -26,13 +27,33 @@ const RegisterPage = () => {
     (state) => state.auth
   )
 
-  // Start polling when we have a pollKey and are waiting for verification
   useEffect(() => {
-    if (!registrationDone || !pollKey) return
+    if (isError) {
+      toast.error(message)
+    }
 
+    if (isSuccess && !user) {
+      // Save pollKey to ref BEFORE reset() wipes it from Redux
+      if (pollKey) localPollKey.current = pollKey
+      setRegistrationDone(true)
+      setPendingEmail(formData.email)
+    }
+
+    if (user) {
+      navigate('/')
+    }
+
+    dispatch(reset())
+  }, [user, isError, isSuccess, message, navigate, dispatch])
+
+  // Start polling once registrationDone is true and we have a localPollKey
+  useEffect(() => {
+    if (!registrationDone || !localPollKey.current) return
+
+    const key = localPollKey.current
     pollInterval.current = setInterval(async () => {
       try {
-        const res = await api.get('/auth/poll-verification', { params: { pollKey } })
+        const res = await api.get('/auth/poll-verification', { params: { pollKey: key } })
         if (res.data?.verified) {
           clearInterval(pollInterval.current)
           dispatch(setCredentials({ token: res.data.token, user: res.data.user }))
@@ -45,24 +66,7 @@ const RegisterPage = () => {
     }, 3000)
 
     return () => clearInterval(pollInterval.current)
-  }, [registrationDone, pollKey])
-
-  useEffect(() => {
-    if (isError) {
-      toast.error(message)
-    }
-
-    if (isSuccess && !user) {
-      setRegistrationDone(true)
-      setPendingEmail(formData.email)
-    }
-
-    if (user) {
-      navigate('/')
-    }
-
-    dispatch(reset())
-  }, [user, isError, isSuccess, message, navigate, dispatch])
+  }, [registrationDone])
 
   const handleResend = async () => {
     setResending(true)
